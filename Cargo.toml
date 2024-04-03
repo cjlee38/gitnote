@@ -1,0 +1,11 @@
+[package]
+name = "gitnote"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "git-note"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["cargo", "wrap_help"] }
