@@ -35,6 +35,7 @@ impl Note {
 
     fn append(&mut self, message: Message) {
         self.validate_line_exist(&message);
+        // self.validate_line_distinct(&message); // TODO : disable temporarily for development convenience.
         self.messages.push(message);
     }
 
@@ -42,6 +43,13 @@ impl Note {
         let lines = self.content.len();
         if message.end > lines {
             panic!("given end({}) is too big for content lines {lines}", message.end);
+        }
+    }
+
+    fn validate_line_distinct(&self, message: &Message) {
+        let (start, end) = (message.start, message.end);
+        if self.messages.iter().any(|m| m.start == start && m.end == end) {
+            panic!("duplicated line");
         }
     }
 }
@@ -59,12 +67,12 @@ pub fn add_note(file_name: String, line_expr: String, message: String) -> anyhow
     let file_path = resolve_path(&file_name)?;
     let blob = find_git_blob(&file_path)?;
 
-    let (start_line, end_line) = parse_line_range(&line_expr).expect("Parsing line range failed");
+    let (start, end) = parse_line_range(&line_expr).expect("Parsing line range failed");
 
     let mut note = read_or_create_note(&blob)?;
     println!("===Gitblob is {:?}", blob);
 
-    let message = Message { start: start_line, end: end_line, message };
+    let message = Message::new(start, end, message);
 
     note.append(message);
     write_note(&note)?;
@@ -72,24 +80,19 @@ pub fn add_note(file_name: String, line_expr: String, message: String) -> anyhow
     return Ok(());
 }
 
-// TODO : refactor this
-fn parse_line_range(range: &str) -> Result<(usize, usize), &'static str> {
-    let parts: Vec<&str> = range.split(':').collect();
+fn parse_line_range(line_expr: &str) -> anyhow::Result<(usize, usize)> {
+    let parts: Vec<&str> = line_expr.split(':').collect();
     match parts.len() {
         1 => {
-            let line = parts[0].parse::<usize>().map_err(|_| "Invalid line number")?;
+            let line = parts[0].parse::<usize>()?;
             Ok((line, line))
         }
         2 => {
-            let start = parts[0].parse::<usize>().map_err(|_| "Invalid start line")?;
-            let end = parts[1].parse::<usize>().map_err(|_| "Invalid end line")?;
-            if start > end {
-                Err("Start line must not be greater than end line")
-            } else {
-                Ok((start, end))
-            }
+            let start = parts[0].parse::<usize>()?;
+            let end = parts[1].parse::<usize>()?;
+            Ok((start, end))
         }
-        _ => Err("Invalid line range format"),
+        _ => Err(anyhow!("invalid line range format : {line_expr}")),
     }
 }
 
