@@ -1,10 +1,9 @@
 use clap::{Arg, Command};
 
-// TODO : edit, config
 pub fn build_cli() -> Command {
     Command::new("git-note")
         .version("1.0")
-        .author("Your Name <your_email@example.com>")
+        .author("cjlee38 <gptpem38@gmail.com>")
         .about("Manages personal notes on your git repository")
         .subcommand(
             Command::new("add")
@@ -28,7 +27,6 @@ pub fn build_cli() -> Command {
                     .value_name("MESSAGE")
                     .required(true)),
         )
-        .subcommand(Command::new("init").about("Initializes the note system for the repository"))
         .subcommand(
             Command::new("view")
                 .about("Views notes for a file")
@@ -37,6 +35,28 @@ pub fn build_cli() -> Command {
                     .long("file")
                     .help("Specifies the file to view notes for")
                     .value_name("FILE")
+                    .required(true)),
+        )
+        .subcommand(
+            Command::new("edit")
+                .about("Edit a note message identified by line")
+                .arg(Arg::new("file")
+                    .short('f')
+                    .long("file")
+                    .help("Specifies the file to edit a note to")
+                    .value_name("FILE")
+                    .required(true))
+                .arg(Arg::new("line")
+                    .short('l')
+                    .long("line")
+                    .help("Specifies the line number to edit a note to")
+                    .value_name("LINE")
+                    .required(true))
+                .arg(Arg::new("message")
+                    .short('m')
+                    .long("message")
+                    .help("New note message")
+                    .value_name("MESSAGE")
                     .required(true)),
         )
 }

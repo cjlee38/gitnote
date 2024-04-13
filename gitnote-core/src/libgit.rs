@@ -1,6 +1,7 @@
 use std::path::PathBuf;
+use anyhow::anyhow;
 
-use git2::{Error, Repository};
+use git2::{Error, Repository, StatusOptions, StatusShow};
 
 #[derive(Debug)]
 pub struct GitBlob {
@@ -23,7 +24,7 @@ pub fn find_gitnote_path() -> PathBuf {
     return path;
 }
 
-pub fn find_git_blob(file_path: &PathBuf) -> Result<GitBlob, Error> {
+pub fn find_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
     let repository = Repository::discover(".")?;
 
     let head = repository.head()?.resolve()?.peel_to_commit()?;
@@ -38,8 +39,33 @@ pub fn find_git_blob(file_path: &PathBuf) -> Result<GitBlob, Error> {
 
         Ok(GitBlob { id, content })
     } else {
-        Err(Error::from_str("Not a blob"))
+        Err(anyhow!("Not a blob"))
     }
+}
+
+fn file_is_modified(file_path: &str) -> anyhow::Result<bool> {
+    // Open the repository
+    let repo = Repository::discover(".")?;
+
+    // Prepare to collect the status of the files
+    let mut opts = StatusOptions::new();
+    opts.include_untracked(true).show(StatusShow::IndexAndWorkdir);
+
+    // Check the status of our file
+    let statuses = repo.statuses(Some(&mut opts))?;
+    for entry in statuses.iter() {
+        let status = entry.status();
+        let path = entry.path().unwrap_or_default();
+
+        // Check if the path matches and if it has any modifications
+        if path == file_path {
+            if status.contains(git2::Status::WT_MODIFIED) || status.contains(git2::Status::INDEX_MODIFIED) {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
 }
 
 fn split_lines(s: &str) -> Vec<String> {

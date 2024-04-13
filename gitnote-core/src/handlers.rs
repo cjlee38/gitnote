@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
-use crate::io::{read_or_create_note, write_note};
+use crate::io::{read_note, read_or_create_note, write_note};
 use crate::libgit::{find_git_blob, find_root_path, GitBlob};
 
 #[derive(Debug)]
@@ -34,23 +34,41 @@ impl Note {
     }
 
     fn append(&mut self, message: Message) {
-        self.validate_line_exist(&message);
+        self.validate_range_exists(&message);
         // self.validate_line_distinct(&message); // TODO : disable temporarily for development convenience.
         self.messages.push(message);
     }
 
-    fn validate_line_exist(&self, message: &Message) {
-        let lines = self.content.len();
-        if message.end > lines {
-            panic!("given end({}) is too big for content lines {lines}", message.end);
+    fn edit(&mut self, new_message: Message) {
+        if let Some((index, _old_message)) = self.find_message_indexed(new_message.start, new_message.end) {
+            self.messages.remove(index);
+            self.messages.push(new_message);
         }
     }
 
-    fn validate_line_distinct(&self, message: &Message) {
-        let (start, end) = (message.start, message.end);
-        if self.messages.iter().any(|m| m.start == start && m.end == end) {
-            panic!("duplicated line");
+    fn validate_range_exists(&self, message: &Message) {
+        let lines = self.content.len();
+        if message.end > lines {
+            panic!("given end({}) is too big for content lines {lines}", message.end); // TODO : return result
         }
+    }
+
+    fn validate_range_distinct(&self, message: &Message) {
+        let (start, end) = (message.start, message.end);
+        if let None = self.find_message_indexed(start, end) {
+            panic!("duplicated line"); // TODO : return Result
+        }
+    }
+
+    fn find_message_indexed(&self, start: usize, end: usize) -> Option<(usize, &Message)> {
+        let len = self.messages.len();
+        for index in 0..len {
+            let message = &self.messages[index];
+            if message.start == start && message.end == end {
+                return Some((index, &message));
+            }
+        }
+        return None;
     }
 }
 
@@ -67,7 +85,7 @@ pub fn add_note(file_name: String, line_expr: String, message: String) -> anyhow
     let file_path = resolve_path(&file_name)?;
     let blob = find_git_blob(&file_path)?;
 
-    let (start, end) = parse_line_range(&line_expr).expect("Parsing line range failed");
+    let (start, end) = parse_line_range(&line_expr)?;
 
     let mut note = read_or_create_note(&blob)?;
     println!("===Gitblob is {:?}", blob);
@@ -97,7 +115,7 @@ fn parse_line_range(line_expr: &str) -> anyhow::Result<(usize, usize)> {
 }
 
 fn resolve_path(input_path: &String) -> anyhow::Result<PathBuf> {
-    let path = PathBuf::from(input_path).canonicalize().unwrap();
+    let path = PathBuf::from(input_path).canonicalize()?;
     let root = find_root_path();
 
     println!("===resolve_file_path#path : {:?}", &path);
@@ -110,28 +128,28 @@ fn resolve_path(input_path: &String) -> anyhow::Result<PathBuf> {
     return Ok(path.strip_prefix(&root)?.to_path_buf());
 }
 
-pub fn view_notes(filename: String) -> io::Result<()> {
-    // let file = view_matches.get_one::<String>("file").expect("required").clone();
-    // let current_dir = std::env::current_dir()?;
-    // let notes_dir = current_dir.join(".git_notes");
-    // let note_file_path = notes_dir.join(format!("{}_*.json", file));
-    //
-    // let entries = fs::read_dir(notes_dir)?
-    //     .filter_map(|e| e.ok())
-    //     .filter(|e| e.path().is_file() && e.path().to_string_lossy().contains(&note_file_path.to_string_lossy()));
-    //
-    // for entry in entries {
-    //     let file = File::open(entry.path())?;
-    //     let note: note = serde_json::from_reader(file)?;
-    //     println!("{:?}", note);
-    // }
+pub fn view_notes(file_name: String) -> anyhow::Result<()> {
+    let file_path = resolve_path(&file_name)?;
+    let blob = find_git_blob(&file_path)?;
+    let note = read_note(&blob)?;
+
+    println!("===view note : {:?}", note);
     Ok(())
 }
 
-pub fn init_notes() -> io::Result<()> {
-    let current_dir = std::env::current_dir()?;
-    let notes_dir = current_dir.join(".git_notes");
-    fs::create_dir_all(&notes_dir)?;
-    println!("Initialized the notes directory at {:?}", notes_dir);
-    Ok(())
+pub fn edit_note(file_name: String, line_expr: String, message: String) -> anyhow::Result<()> {
+    let file_path = resolve_path(&file_name)?;
+    let blob = find_git_blob(&file_path)?;
+
+    let (start, end) = parse_line_range(&line_expr)?;
+
+    let mut note = read_note(&blob)?;
+    println!("===Gitblob is {:?}", blob);
+
+    let message = Message::new(start, end, message);
+    note.edit(message);
+
+    write_note(&note)?;
+    println!("===Note is {:?}", &note);
+    return Ok(());
 }

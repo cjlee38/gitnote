@@ -1,8 +1,8 @@
-use std::fs::{create_dir_all, File};
+use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 
 use crate::handlers::{Message, Note};
 use crate::libgit::{find_gitnote_path, GitBlob};
@@ -15,15 +15,23 @@ pub fn write_note(note: &Note) -> anyhow::Result<()> {
 }
 
 pub fn read_or_create_note(blob: &GitBlob) -> anyhow::Result<Note> {
-    if let Ok(messages) = read_messages(&blob.id) {
-        return Ok(Note::from(blob, messages));
+    if let Ok(note) = read_note(blob) {
+        return Ok(note);
     }
     let new = Note::new(blob);
     write_note(&new)?;
     return Ok(new);
 }
 
-pub fn read_messages(id: &String) -> anyhow::Result<Vec<Message>>{
+pub fn read_note(blob: &GitBlob) -> anyhow::Result<Note> {
+    let messages = read_messages(&blob.id);
+    match messages {
+        Ok(m) => Ok(Note::from(blob, m)),
+        Err(_) => Err(anyhow!("cannot read note")),
+    }
+}
+
+fn read_messages(id: &String) -> anyhow::Result<Vec<Message>>{
     let note_path = find_note_path(&id)?;
 
     let file = File::open(&note_path).with_context(|| format!("cannot find note : {:?}", &note_path))?;
