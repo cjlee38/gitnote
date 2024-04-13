@@ -40,9 +40,15 @@ impl Note {
     }
 
     fn edit(&mut self, new_message: Message) {
-        if let Some((index, _old_message)) = self.find_message_indexed(new_message.start, new_message.end) {
+        if let Some((index, _)) = self.find_message_indexed(new_message.start, new_message.end) {
             self.messages.remove(index);
             self.messages.push(new_message);
+        }
+    }
+
+    fn delete(&mut self, start: usize, end: usize) {
+        if let Some((index, _)) = self.find_message_indexed(start, end) {
+            self.messages.remove(index);
         }
     }
 
@@ -128,7 +134,7 @@ fn resolve_path(input_path: &String) -> anyhow::Result<PathBuf> {
     return Ok(path.strip_prefix(&root)?.to_path_buf());
 }
 
-pub fn view_notes(file_name: String) -> anyhow::Result<()> {
+pub fn read_notes(file_name: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
     let blob = find_git_blob(&file_path)?;
     let note = read_note(&blob)?;
@@ -149,6 +155,21 @@ pub fn edit_note(file_name: String, line_expr: String, message: String) -> anyho
     let message = Message::new(start, end, message);
     note.edit(message);
 
+    write_note(&note)?;
+    println!("===Note is {:?}", &note);
+    return Ok(());
+}
+
+pub fn delete_note(file_name: String, line_expr: String) -> anyhow::Result<()> {
+    let file_path = resolve_path(&file_name)?;
+    let blob = find_git_blob(&file_path)?;
+
+    let (start, end) = parse_line_range(&line_expr)?;
+
+    let mut note = read_note(&blob)?;
+    println!("===Gitblob is {:?}", blob);
+
+    note.delete(start, end);
     write_note(&note)?;
     println!("===Note is {:?}", &note);
     return Ok(());

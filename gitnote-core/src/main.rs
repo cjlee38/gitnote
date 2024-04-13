@@ -17,20 +17,28 @@ fn main() {
                 eprintln!("Error adding note: {}", e);
             }
         }
-        Some(("edit", add_matches)) => {
+        Some(("edit", edit_matches)) => {
             if let Err(e) = handlers::edit_note(
-                add_matches.get_one::<String>("file").expect("required").clone(),
-                add_matches.get_one::<String>("line").expect("required").clone(),
-                add_matches.get_one::<String>("message").expect("required").clone(),
+                edit_matches.get_one::<String>("file").expect("required").clone(),
+                edit_matches.get_one::<String>("line").expect("required").clone(),
+                edit_matches.get_one::<String>("message").expect("required").clone(),
             ) {
                 eprintln!("Error editing note: {}", e);
             }
         }
-        Some(("view", view_matches)) => {
-            if let Err(e) = handlers::view_notes(
-                view_matches.get_one::<String>("file").expect("required").clone()
+        Some(("read", read_matches)) => {
+            if let Err(e) = handlers::read_notes(
+                read_matches.get_one::<String>("file").expect("required").clone()
             ) {
                 eprintln!("Error viewing notes: {}", e);
+            }
+        }
+        Some(("delete", delete_matches)) => {
+            if let Err(e) = handlers::delete_note(
+                delete_matches.get_one::<String>("file").expect("required").clone(),
+                delete_matches.get_one::<String>("line").expect("required").clone(),
+            ) {
+                eprintln!("Error deleting note: {}", e);
             }
         }
         _ => {}
