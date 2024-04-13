@@ -1,0 +1,6 @@
+gitnote-core/target
+.idea
+
+# for develop
+gitnote-test
+test.sh

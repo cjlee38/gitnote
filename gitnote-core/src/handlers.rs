@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::io::{read_or_create_note, write_note};
 use crate::libgit::{find_git_blob, find_root_path, GitBlob};
 
+#[derive(Debug)]
 pub struct Note {
     pub id: String,
     pub content: Vec<String>,
