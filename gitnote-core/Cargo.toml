@@ -2,7 +2,8 @@
 name = "git-note"
 version = "0.1.0"
 edition = "2021"
-
+description = "An ephemeral comment extension based on Git."
+license = "Apache-2.0"
 include = [
     "**/*.rs",
     "Cargo.*",
