@@ -1,11 +1,11 @@
-use std::{fs, io};
+use std::fmt::format;
 use std::path::PathBuf;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context, Error};
 use serde::{Deserialize, Serialize};
 
 use crate::io::{read_note, read_or_create_note, write_note};
-use crate::libgit::{find_git_blob, find_root_path, GitBlob};
+use crate::libgit::{find_git_blob, find_root_path, is_file_staged, GitBlob};
 
 #[derive(Debug)]
 pub struct Note {
@@ -30,7 +30,11 @@ impl Note {
         let id = blob.id.to_owned();
         let content = blob.content.to_vec();
 
-        Note { id, content, messages }
+        Note {
+            id,
+            content,
+            messages,
+        }
     }
 
     fn append(&mut self, message: Message) {
@@ -52,18 +56,25 @@ impl Note {
         }
     }
 
-    fn validate_range_exists(&self, message: &Message) {
+    fn validate_range_exists(&self, message: &Message) -> anyhow::Result<()> {
         let lines = self.content.len();
         if message.end > lines {
-            panic!("given end({}) is too big for content lines {lines}", message.end); // TODO : return result
+            return Err(anyhow!(format!(
+                "given end({}) is too big for content lines {lines}",
+                message.end
+            )));
         }
+        return Ok(());
     }
 
-    fn validate_range_distinct(&self, message: &Message) {
+    fn validate_range_distinct(&self, message: &Message) -> anyhow::Result<()> {
         let (start, end) = (message.start, message.end);
         if let None = self.find_message_indexed(start, end) {
-            panic!("duplicated line"); // TODO : return Result
+            return Err(anyhow!(format!(
+                "{start}:{end} line duplicated. consider to use `edit` instead."
+            )));
         }
+        return Ok(());
     }
 
     fn find_message_indexed(&self, start: usize, end: usize) -> Option<(usize, &Message)> {
@@ -79,28 +90,34 @@ impl Note {
 }
 
 impl Message {
-    fn new(start: usize, end: usize, message: String) -> Self {
+    fn new(start: usize, end: usize, message: String) -> anyhow::Result<Self> {
         if start > end {
-            panic!("start({start}) should be lower than end({end})")
+            return Err(anyhow!("start({start}) should be lower than end({end})"));
         }
-        Message { start, end, message }
+        Ok(Message {
+            start,
+            end,
+            message,
+        })
     }
 }
 
 pub fn add_note(file_name: String, line_expr: String, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
+    if !is_file_staged(&file_path)? {
+        return Err(anyhow!(format!(
+            "file \"{}\" is not up-to-date. stage the file using `git add {}` before add comment",
+            &file_name, &file_name
+        )));
+    }
     let blob = find_git_blob(&file_path)?;
-
     let (start, end) = parse_line_range(&line_expr)?;
 
     let mut note = read_or_create_note(&blob)?;
-    println!("===Gitblob is {:?}", blob);
-
-    let message = Message::new(start, end, message);
-
+    let message = Message::new(start, end, message)?;
     note.append(message);
     write_note(&note)?;
-    println!("===Note is {:?}", &note);
+
     return Ok(());
 }
 
@@ -121,17 +138,18 @@ fn parse_line_range(line_expr: &str) -> anyhow::Result<(usize, usize)> {
 }
 
 fn resolve_path(input_path: &String) -> anyhow::Result<PathBuf> {
-    let path = PathBuf::from(input_path).canonicalize()?;
-    let root = find_root_path();
+    let abs_path = PathBuf::from(input_path)
+        .canonicalize()
+        .with_context(|| format!("cannot find to specified file [{input_path}]."))?;
+    let root_path = find_root_path()?;
 
-    println!("===resolve_file_path#path : {:?}", &path);
-    println!("===resolve_file_path#root : {:?}", &root);
-    println!("===resolve_file_path#path.starts_with(root) : {:?}", &path.starts_with(&root));
-
-    if !path.exists() || !path.starts_with(&root) {
-        return Err(anyhow!("resolved path is not matched with root path"));
+    if !abs_path.exists() || !abs_path.starts_with(&root_path) {
+        return Err(anyhow!(format!(
+            "specified file {:?} looks like not contained in git repository of {:?}",
+            abs_path, root_path
+        )));
     }
-    return Ok(path.strip_prefix(&root)?.to_path_buf());
+    return Ok(abs_path.strip_prefix(&root_path)?.to_path_buf());
 }
 
 pub fn read_notes(file_name: String) -> anyhow::Result<()> {
@@ -145,32 +163,30 @@ pub fn read_notes(file_name: String) -> anyhow::Result<()> {
 
 pub fn edit_note(file_name: String, line_expr: String, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
+    if !is_file_staged(&file_path)? {
+        return Err(anyhow!(format!(
+            "file \"{}\" is not up-to-date. stage the file using `git add {}` before add comment",
+            &file_name, &file_name
+        )));
+    }
     let blob = find_git_blob(&file_path)?;
-
     let (start, end) = parse_line_range(&line_expr)?;
 
     let mut note = read_note(&blob)?;
-    println!("===Gitblob is {:?}", blob);
-
-    let message = Message::new(start, end, message);
+    let message = Message::new(start, end, message)?;
     note.edit(message);
 
     write_note(&note)?;
-    println!("===Note is {:?}", &note);
     return Ok(());
 }
 
 pub fn delete_note(file_name: String, line_expr: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
     let blob = find_git_blob(&file_path)?;
-
     let (start, end) = parse_line_range(&line_expr)?;
 
     let mut note = read_note(&blob)?;
-    println!("===Gitblob is {:?}", blob);
-
     note.delete(start, end);
     write_note(&note)?;
-    println!("===Note is {:?}", &note);
     return Ok(());
 }

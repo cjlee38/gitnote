@@ -1,6 +1,7 @@
+use std::env;
 use std::path::PathBuf;
-use anyhow::anyhow;
 
+use anyhow::{anyhow, Context};
 use git2::{Error, Repository, StatusOptions, StatusShow};
 
 #[derive(Debug)]
@@ -9,19 +10,29 @@ pub struct GitBlob {
     pub content: Vec<String>,
 }
 
-pub fn find_root_path() -> PathBuf {
-    Repository::discover(".").expect("git repository not found")
-        .workdir().expect("git repository working directory not found")
-        .to_path_buf()
+pub fn find_root_path() -> anyhow::Result<PathBuf> {
+    Ok(Repository::discover(".")
+        .with_context(|| {
+            format!(
+                "git repository not found for current directry({:?})",
+                env::current_dir().unwrap()
+            )
+        })?
+        .workdir()
+        .context("git repository working directory not found")?
+        .to_path_buf())
 }
 
-pub fn find_gitnote_path() -> PathBuf {
-    let path = find_root_path().join(PathBuf::from(".git/.git-notes"));
-    let exist = path.try_exists().expect("failed to find git-note path");
-    if !exist {
-        std::fs::create_dir(&path).expect("failed to create git-note path");
+pub fn find_gitnote_path() -> anyhow::Result<PathBuf> {
+    let path = find_root_path()?.join(PathBuf::from(".git/.git-notes"));
+    if let Ok(false) = path.try_exists().context(
+        "failed to find git-note path. consider to check the permission of your directory.",
+    ) {
+        std::fs::create_dir(&path).context(
+            "failed to create git-note path. consider to check the permission of your directory.",
+        )?;
     }
-    return path;
+    return Ok(path);
 }
 
 pub fn find_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
@@ -33,8 +44,9 @@ pub fn find_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
     if let Some(blob) = object.as_blob() {
         let id = blob.id().to_string();
         let content_bytes = blob.content();
-        let content_str = std::str::from_utf8(content_bytes) // TODO : What if content is not utf8 ?
-            .map_err(|e| Error::from_str(&format!("UTF-8 decoding error: {}", e)))?;
+        let content_str =
+            std::str::from_utf8(content_bytes) // TODO : What if content is not utf8 ?
+                .map_err(|e| Error::from_str(&format!("UTF-8 decoding error: {}", e)))?;
         let content = split_lines(content_str);
 
         Ok(GitBlob { id, content })
@@ -43,51 +55,35 @@ pub fn find_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
     }
 }
 
-fn file_is_modified(file_path: &str) -> anyhow::Result<bool> {
-    // Open the repository
-    let repo = Repository::discover(".")?;
+pub fn is_file_staged(file_path: &PathBuf) -> anyhow::Result<bool> {
+    let file_path_str = file_path.to_str().unwrap();
+    let repository = Repository::discover(".")?;
 
-    // Prepare to collect the status of the files
     let mut opts = StatusOptions::new();
-    opts.include_untracked(true).show(StatusShow::IndexAndWorkdir);
+    opts.include_untracked(true)
+        .include_unmodified(true)
+        .show(StatusShow::IndexAndWorkdir);
 
-    // Check the status of our file
-    let statuses = repo.statuses(Some(&mut opts))?;
-    for entry in statuses.iter() {
-        let status = entry.status();
-        let path = entry.path().unwrap_or_default();
+    let statuses = repository.statuses(Some(&mut opts))?;
+    print!("statussesssss {:?}", &statuses.len());
+    let entry = statuses.iter()
+        .find(|entry| {
+            println!("=== iter {:?}, status {:?}", &entry.path(), &entry.status());
+            entry.path().unwrap_or_default() == file_path_str
+        });
 
-        // Check if the path matches and if it has any modifications
-        if path == file_path {
-            if status.contains(git2::Status::WT_MODIFIED) || status.contains(git2::Status::INDEX_MODIFIED) {
-                return Ok(true);
-            }
-        }
-    }
-
-    Ok(false)
+    return match entry {
+        Some(entry) => {
+            println!("=== entry status = {:?}", &entry.status());
+            Ok(entry.status().bits() <= (1 << 4))
+        },
+        None => Ok(false),
+    };
 }
 
 fn split_lines(s: &str) -> Vec<String> {
-    s.replace("\r\n", "\n").split('\n').map(String::from).collect()
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_find_root_path() {
-        let path = find_root_path();
-        println!("{:?}", path);
-    }
-
-    #[test]
-    fn test_find_git_blob() {
-        let file_path = PathBuf::from("src/main.rs");
-        let option = find_git_blob(&file_path);
-        let blob = option.unwrap();
-        println!("{:?}", blob);
-    }
+    s.replace("\r\n", "\n")
+        .split('\n')
+        .map(String::from)
+        .collect()
 }

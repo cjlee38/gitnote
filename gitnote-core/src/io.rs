@@ -27,7 +27,7 @@ pub fn read_note(blob: &GitBlob) -> anyhow::Result<Note> {
     let messages = read_messages(&blob.id);
     match messages {
         Ok(m) => Ok(Note::from(blob, m)),
-        Err(_) => Err(anyhow!("cannot read note")),
+        Err(e) => Err(anyhow!("cannot read note. {:?}", e)),
     }
 }
 
@@ -41,7 +41,7 @@ fn read_messages(id: &String) -> anyhow::Result<Vec<Message>>{
 }
 
 fn find_note_path(id: &String) -> anyhow::Result<PathBuf> {
-    let base_path = find_gitnote_path();
+    let base_path = find_gitnote_path()?;
     let dir = &id[0..2];
     let file = &id[2..];
     ensure_dir(&base_path.join(dir));
