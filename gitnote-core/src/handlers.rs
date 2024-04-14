@@ -1,46 +1,39 @@
-use std::fmt::format;
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Context, Error};
+use anyhow::{anyhow, Context};
 use serde::{Deserialize, Serialize};
 
 use crate::io::{read_note, read_or_create_note, write_note};
 use crate::libgit::{find_git_blob, find_root_path, is_file_staged, GitBlob};
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Note {
     pub id: String,
-    pub content: Vec<String>,
+    pub reference: PathBuf,
     pub messages: Vec<Message>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Message {
-    start: usize,
-    end: usize,
-    message: String,
-}
-
 impl Note {
-    pub(crate) fn new(blob: &GitBlob) -> Self {
-        Note::from(blob, Vec::new())
+    pub(crate) fn new(id: &String, reference: &PathBuf) -> Self {
+        Note::from(id, reference, Vec::new())
     }
 
-    pub(crate) fn from(blob: &GitBlob, messages: Vec<Message>) -> Self {
-        let id = blob.id.to_owned();
-        let content = blob.content.to_vec();
-
+    pub(crate) fn from(id: &String, reference: &PathBuf, messages: Vec<Message>) -> Self {
         Note {
-            id,
-            content,
+            id: id.to_owned(),
+            reference: reference.to_owned(),
             messages,
         }
     }
 
-    fn append(&mut self, message: Message) {
-        self.validate_range_exists(&message);
+    pub fn get_id(path: &PathBuf) -> anyhow::Result<String> {
+        Ok(sha256::digest(path.canonicalize()?.to_str().unwrap()))
+    }
+
+    fn append(&mut self, message: Message) -> anyhow::Result<()> {
         // self.validate_line_distinct(&message); // TODO : disable temporarily for development convenience.
         self.messages.push(message);
+        return Ok(());
     }
 
     fn edit(&mut self, new_message: Message) {
@@ -54,17 +47,6 @@ impl Note {
         if let Some((index, _)) = self.find_message_indexed(start, end) {
             self.messages.remove(index);
         }
-    }
-
-    fn validate_range_exists(&self, message: &Message) -> anyhow::Result<()> {
-        let lines = self.content.len();
-        if message.end > lines {
-            return Err(anyhow!(format!(
-                "given end({}) is too big for content lines {lines}",
-                message.end
-            )));
-        }
-        return Ok(());
     }
 
     fn validate_range_distinct(&self, message: &Message) -> anyhow::Result<()> {
@@ -89,14 +71,36 @@ impl Note {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Message {
+    id: String,
+    start: usize,
+    end: usize,
+    snippet: Vec<String>,
+    message: String,
+}
+
 impl Message {
-    fn new(start: usize, end: usize, message: String) -> anyhow::Result<Self> {
+    fn new(blob: &GitBlob, start: usize, end: usize, message: String) -> anyhow::Result<Self> {
         if start > end {
             return Err(anyhow!("start({start}) should be lower than end({end})"));
         }
+        let snippet = blob
+            .content
+            .get(start - 1..end)
+            .with_context(|| {
+                format!(
+                    "specified end inclusive({}) is too big for file {:?}",
+                    end, &blob.file_path
+                )
+            })?
+            .to_vec();
+
         Ok(Message {
+            id: blob.id.to_string(),
             start,
             end,
+            snippet,
             message,
         })
     }
@@ -105,6 +109,7 @@ impl Message {
 pub fn add_note(file_name: String, line_expr: String, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
     if !is_file_staged(&file_path)? {
+        // TODO : inquire
         return Err(anyhow!(format!(
             "file \"{}\" is not up-to-date. stage the file using `git add {}` before add comment",
             &file_name, &file_name
@@ -113,11 +118,11 @@ pub fn add_note(file_name: String, line_expr: String, message: String) -> anyhow
     let blob = find_git_blob(&file_path)?;
     let (start, end) = parse_line_range(&line_expr)?;
 
-    let mut note = read_or_create_note(&blob)?;
-    let message = Message::new(start, end, message)?;
-    note.append(message);
+    let mut note = read_or_create_note(&file_path)?;
+    let message = Message::new(&blob, start, end, message)?;
+    note.append(message)?;
     write_note(&note)?;
-
+    println!("=== add note : {:?}", note);
     return Ok(());
 }
 
@@ -155,9 +160,9 @@ fn resolve_path(input_path: &String) -> anyhow::Result<PathBuf> {
 pub fn read_notes(file_name: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
     let blob = find_git_blob(&file_path)?;
-    let note = read_note(&blob)?;
-
-    println!("===view note : {:?}", note);
+    let note = read_note(&blob.file_path)?;
+    let note_str = serde_json::to_string_pretty(&note)?;
+    println!("===read note : {}", note_str);
     Ok(())
 }
 
@@ -172,8 +177,8 @@ pub fn edit_note(file_name: String, line_expr: String, message: String) -> anyho
     let blob = find_git_blob(&file_path)?;
     let (start, end) = parse_line_range(&line_expr)?;
 
-    let mut note = read_note(&blob)?;
-    let message = Message::new(start, end, message)?;
+    let mut note = read_note(&file_path)?;
+    let message = Message::new(&blob, start, end, message)?;
     note.edit(message);
 
     write_note(&note)?;
@@ -182,10 +187,9 @@ pub fn edit_note(file_name: String, line_expr: String, message: String) -> anyho
 
 pub fn delete_note(file_name: String, line_expr: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
-    let blob = find_git_blob(&file_path)?;
     let (start, end) = parse_line_range(&line_expr)?;
 
-    let mut note = read_note(&blob)?;
+    let mut note = read_note(&file_path)?;
     note.delete(start, end);
     write_note(&note)?;
     return Ok(());

@@ -2,36 +2,30 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 
-use crate::handlers::{Message, Note};
-use crate::libgit::{find_gitnote_path, GitBlob};
+use crate::handlers::Note;
+use crate::libgit::find_gitnote_path;
 
 pub fn write_note(note: &Note) -> anyhow::Result<()> {
     let note_path = find_note_path(&note.id)?;
     let file = File::create(note_path)?;
-    serde_json::to_writer(&file, &note.messages)?;
+    serde_json::to_writer(&file, &note)?;
     return Ok(());
 }
 
-pub fn read_or_create_note(blob: &GitBlob) -> anyhow::Result<Note> {
-    if let Ok(note) = read_note(blob) {
+pub fn read_or_create_note(file_path: &PathBuf) -> anyhow::Result<Note> {
+    if let Ok(note) = read_note(file_path) {
         return Ok(note);
     }
-    let new = Note::new(blob);
+    let id = Note::get_id(file_path)?;
+    let new = Note::new(&id, file_path);
     write_note(&new)?;
     return Ok(new);
 }
 
-pub fn read_note(blob: &GitBlob) -> anyhow::Result<Note> {
-    let messages = read_messages(&blob.id);
-    match messages {
-        Ok(m) => Ok(Note::from(blob, m)),
-        Err(e) => Err(anyhow!("cannot read note. {:?}", e)),
-    }
-}
-
-fn read_messages(id: &String) -> anyhow::Result<Vec<Message>>{
+pub fn read_note(file_path: &PathBuf) -> anyhow::Result<Note> {
+    let id = Note::get_id(file_path)?;
     let note_path = find_note_path(&id)?;
 
     let file = File::open(&note_path).with_context(|| format!("cannot find note : {:?}", &note_path))?;
@@ -44,14 +38,15 @@ fn find_note_path(id: &String) -> anyhow::Result<PathBuf> {
     let base_path = find_gitnote_path()?;
     let dir = &id[0..2];
     let file = &id[2..];
-    ensure_dir(&base_path.join(dir));
+    ensure_dir(&base_path.join(dir))?;
     let note_path = base_path.join(dir).join(file);
     Ok(note_path)
 }
 
-fn ensure_dir(dir_path: &PathBuf) {
+fn ensure_dir(dir_path: &PathBuf) -> anyhow::Result<()> {
     if !dir_path.exists() {
-        std::fs::create_dir(dir_path)
-            .expect(&format!("Failed to create dir for {:?}", dir_path));
+        return Ok(std::fs::create_dir(dir_path)
+            .context(format!("Failed to create dir for {:?}", dir_path))?)
     }
+    return Ok(());
 }
