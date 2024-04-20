@@ -3,6 +3,7 @@ mod handlers;
 mod libgit;
 mod io;
 mod stdio;
+mod note;
 
 fn main() {
     let cli = argument::build_cli();

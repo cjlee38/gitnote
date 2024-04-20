@@ -2,6 +2,7 @@ use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
+use std::process::Command;
 
 use anyhow::{anyhow, Context};
 use git2::{Blob, Repository, StatusOptions, StatusShow};
@@ -85,6 +86,33 @@ pub fn is_file_staged(file_path: &PathBuf) -> anyhow::Result<bool> {
         Some(entry) => Ok(entry.status().bits() <= (1 << 4)), // CURRENT + INDEXED_XXX
         None => Ok(false),
     };
+}
+
+pub fn show_diff(file_path: &PathBuf) -> anyhow::Result<()> {
+    let output = Command::new("git")
+        .arg("diff")
+        .arg("--color")
+        .arg("--")
+        .arg(file_path)
+        .output()?;
+
+    if !output.status.success() {
+        return Err(anyhow!("Failed to execute git diff"));
+    }
+
+    let diff = String::from_utf8(output.stdout)?;
+    println!("===diff=== {}", diff);
+
+    Ok(())
+}
+
+pub fn stage(file_path: &PathBuf) -> anyhow::Result<()> {
+    let repo = Repository::discover(".")?;
+    let mut index = repo.index()?;
+    let file_path = file_path.strip_prefix(repo.workdir().unwrap())?;
+    index.add_path(file_path)?;
+    index.write()?;
+    Ok(())
 }
 
 fn split_lines(s: &str) -> Vec<String> {
