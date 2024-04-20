@@ -9,15 +9,7 @@ use crate::stdio::{inquire_boolean, write_out};
 
 pub fn add_note(file_name: String, line_expr: String, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
-    if !is_file_staged(&file_path)? {
-        write_out(get_diff(&file_path)?);
-        if inquire_boolean(
-            &format!("File \"{}\" is not up-to-date. \
-            Would you stage the file before adding comment ?(y/n)", &file_name),
-        )? {
-            stage(&file_path)?;
-        }
-    }
+    require_file_staged(&file_path)?;
 
     let blob = find_git_blob(&file_path)?;
     let (start, end) = parse_line_range(&line_expr)?;
@@ -30,6 +22,19 @@ pub fn add_note(file_name: String, line_expr: String, message: String) -> anyhow
         "successfully added comment for {:?} in range {}:{}",
         &file_path, start, end
     );
+    return Ok(());
+}
+
+fn require_file_staged(file_path: &PathBuf) -> anyhow::Result<()> {
+    if !is_file_staged(&file_path)? {
+        write_out(get_diff(&file_path)?);
+        if inquire_boolean(
+            &format!("File \"{:?}\" is not up-to-date. \
+            Would you stage the file before adding comment ?(y/n)", &file_path),
+        )? {
+            stage(&file_path)?;
+        }
+    }
     return Ok(());
 }
 
@@ -75,12 +80,8 @@ pub fn read_notes(file_name: String) -> anyhow::Result<()> {
 
 pub fn edit_note(file_name: String, line_expr: String, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
-    if !is_file_staged(&file_path)? {
-        return Err(anyhow!(format!(
-            "file \"{}\" is not up-to-date. stage the file using `git add {}` before add comment",
-            &file_name, &file_name
-        )));
-    }
+    require_file_staged(&file_path)?;
+
     let blob = find_git_blob(&file_path)?;
     let (start, end) = parse_line_range(&line_expr)?;
 
