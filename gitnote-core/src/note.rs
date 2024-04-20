@@ -1,6 +1,9 @@
 use std::path::PathBuf;
+
 use anyhow::{anyhow, Context};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
 use crate::libgit::GitBlob;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -73,10 +76,11 @@ pub struct Message {
     id: String,
     start: usize,
     end: usize,
-    pub(crate) snippet: Vec<String>,
+    pub snippet: Vec<String>,
     message: String,
+    #[serde(with = "datetime")]
+    created_at: DateTime<Utc>,
 }
-
 
 impl Message {
     pub fn new(blob: &GitBlob, start: usize, end: usize, message: String) -> anyhow::Result<Self> {
@@ -100,6 +104,30 @@ impl Message {
             end,
             snippet,
             message,
+            created_at: Utc::now(),
         })
+    }
+}
+
+mod datetime {
+    use chrono::{DateTime, SecondsFormat, Utc};
+    use serde::{self, Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = date.to_rfc3339_opts(SecondsFormat::Secs, true);
+        serializer.serialize_str(&s)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        DateTime::parse_from_rfc3339(&s)
+            .map(|dt| dt.with_timezone(&Utc))
+            .map_err(serde::de::Error::custom)
     }
 }
