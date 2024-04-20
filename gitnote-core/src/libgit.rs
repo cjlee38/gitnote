@@ -88,7 +88,7 @@ pub fn is_file_staged(file_path: &PathBuf) -> anyhow::Result<bool> {
     };
 }
 
-pub fn show_diff(file_path: &PathBuf) -> anyhow::Result<()> {
+pub fn get_diff(file_path: &PathBuf) -> anyhow::Result<String> {
     let output = Command::new("git")
         .arg("diff")
         .arg("--color")
@@ -100,10 +100,7 @@ pub fn show_diff(file_path: &PathBuf) -> anyhow::Result<()> {
         return Err(anyhow!("Failed to execute git diff"));
     }
 
-    let diff = String::from_utf8(output.stdout)?;
-    println!("===diff=== {}", diff);
-
-    Ok(())
+    return Ok(String::from_utf8(output.stdout)?);
 }
 
 pub fn stage(file_path: &PathBuf) -> anyhow::Result<()> {

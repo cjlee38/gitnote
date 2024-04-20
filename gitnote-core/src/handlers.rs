@@ -3,18 +3,20 @@ use std::path::PathBuf;
 use anyhow::{anyhow, Context};
 
 use crate::io::{read_all_note, read_or_create_note, read_valid_note, write_note};
-use crate::libgit::{find_git_blob, find_root_path, is_file_staged, show_diff};
+use crate::libgit::{find_git_blob, find_root_path, get_diff, is_file_staged, stage};
 use crate::note::Message;
-use crate::stdio::inquire_boolean;
+use crate::stdio::{inquire_boolean, write_out};
 
 pub fn add_note(file_name: String, line_expr: String, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
     if !is_file_staged(&file_path)? {
-        show_diff(&file_path)?;
-        if let will_stage = inquire_boolean(&format!("File "{}" is not up-to-date. Would you stage the file before adding comment ?(y/n)", &file_name))? {
+        write_out(get_diff(&file_path)?);
+        if inquire_boolean(
+            &format!("File \"{}\" is not up-to-date. \
+            Would you stage the file before adding comment ?(y/n)", &file_name),
+        )? {
             stage(&file_path)?;
         }
-
     }
 
     let blob = find_git_blob(&file_path)?;
@@ -24,7 +26,10 @@ pub fn add_note(file_name: String, line_expr: String, message: String) -> anyhow
     let message = Message::new(&blob, start, end, message)?;
     note.append(message)?;
     write_note(&note)?;
-    println!("successfully added comment for {:?} in range {}:{}", &file_path, start, end);
+    println!(
+        "successfully added comment for {:?} in range {}:{}",
+        &file_path, start, end
+    );
     return Ok(());
 }
 
@@ -64,7 +69,7 @@ pub fn read_notes(file_name: String) -> anyhow::Result<()> {
     let blob = find_git_blob(&file_path)?;
     let note = read_valid_note(&blob.file_path)?;
     let note_str = serde_json::to_string_pretty(&note)?;
-    println!("===read note : {}", note_str);
+    write_out(note_str);
     Ok(())
 }
 

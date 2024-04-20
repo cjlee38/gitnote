@@ -18,3 +18,7 @@ pub fn inquire_boolean(prompt: &String) -> anyhow::Result<bool> {
         Err(anyhow!("require y(es) or n(o)"))
     }
 }
+
+pub fn write_out(output: String) {
+    println!("{}", output);
+}
