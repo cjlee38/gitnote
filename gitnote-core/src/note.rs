@@ -77,7 +77,7 @@ pub struct Message {
     start: usize,
     end: usize,
     pub snippet: Vec<String>,
-    message: String,
+    pub message: String,
     #[serde(with = "datetime")]
     created_at: DateTime<Utc>,
 }

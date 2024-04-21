@@ -19,6 +19,6 @@ pub fn inquire_boolean(prompt: &String) -> anyhow::Result<bool> {
     }
 }
 
-pub fn write_out(output: String) {
+pub fn write_out(output: &String) {
     println!("{}", output);
 }

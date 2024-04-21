@@ -41,7 +41,8 @@ fn main() -> ExitCode {
         }
         Some(("read", read_matches)) => {
             handle_command(handlers::read_notes(
-                read_matches.get_one::<String>("file").expect("required").clone()
+                read_matches.get_one::<String>("file").expect("required").clone(),
+                read_matches.get_flag("format")
             ))
         }
         Some(("delete", delete_matches)) => {

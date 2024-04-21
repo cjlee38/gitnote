@@ -1,6 +1,8 @@
+use std::ops::Add;
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context};
+use colored::Colorize;
 
 use crate::io::{read_all_note, read_or_create_note, read_valid_note, write_note};
 use crate::libgit::{find_git_blob, find_root_path, get_diff, is_file_staged, stage};
@@ -27,7 +29,7 @@ pub fn add_note(file_name: String, line_expr: String, message: String) -> anyhow
 
 fn validate_file_staged(file_path: &PathBuf) -> anyhow::Result<()> {
     if !is_file_staged(&file_path)? {
-        write_out(get_diff(&file_path)?);
+        write_out(&get_diff(&file_path)?);
         if inquire_boolean(
             &format!("File \"{:?}\" is not up-to-date. \
             Would you stage the file before adding comment ?(y/n)", &file_path),
@@ -69,12 +71,22 @@ fn resolve_path(input_path: &String) -> anyhow::Result<PathBuf> {
     return Ok(abs_path.strip_prefix(&root_path)?.to_path_buf());
 }
 
-pub fn read_notes(file_name: String) -> anyhow::Result<()> {
+pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
     let blob = find_git_blob(&file_path)?;
     let note = read_valid_note(&blob.file_path)?;
-    let note_str = serde_json::to_string_pretty(&note)?;
-    write_out(note_str);
+
+    if formatted {
+        let note_str = serde_json::to_string_pretty(&note)?;
+        write_out(&note_str);
+    } else {
+        // TODO : prettify output
+        note.messages.iter().for_each(|message| {
+            message.snippet.iter().for_each(|line| write_out(line));
+            write_out(&format!("{}", message.message.red()))
+        });
+    }
+
     Ok(())
 }
 

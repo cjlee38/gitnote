@@ -1,4 +1,4 @@
-use clap::{Arg, Command};
+use clap::{Arg, ArgAction, Command};
 
 pub fn build_cli() -> Command {
     Command::new("git-note")
@@ -15,7 +15,8 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("read")
                 .about("Read notes for a file")
-                .arg(file_argument("Specifies the file to view notes for")),
+                .arg(file_argument("Specifies the file to view notes for"))
+                .arg(format_argument()),
         )
         .subcommand(
             Command::new("edit")
@@ -57,4 +58,12 @@ fn message_argument(help_message: &str) -> Arg {
         .help(help_message.to_string())
         .value_name("MESSAGE")
         .required(true)
+}
+
+fn format_argument() -> Arg {
+    Arg::new("format")
+        .long("formatted")
+        .help("Prints the note in a json-formatted way")
+        .action(ArgAction::SetTrue)
+        .required(false)
 }
