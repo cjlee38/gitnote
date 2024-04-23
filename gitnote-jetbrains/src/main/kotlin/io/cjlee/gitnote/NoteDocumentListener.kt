@@ -28,7 +28,8 @@ class NoteDocumentListener(
         println("======documentChanged")
 
         if (!event.document.isInBulkUpdate) {
-            return documentChangedNonBulk(event)
+            return
+//            return documentChangedNonBulk(event)
         }
 
         refreshGutter(editor)
