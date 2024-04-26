@@ -41,6 +41,10 @@ tasks {
         untilBuild.set("232.*")
     }
 
+    runIde {
+        autoReloadPlugins = true
+    }
+
     signPlugin {
         certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
         privateKey.set(System.getenv("PRIVATE_KEY"))

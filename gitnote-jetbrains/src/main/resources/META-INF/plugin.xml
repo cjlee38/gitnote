@@ -26,6 +26,10 @@
             <implementation-class>io.cjlee.gitnote.CustomLineMarkerService</implementation-class>
         </component>
     </application-components>
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="CatViewer" anchor="right" factoryClass="io.cjlee.gitnote.toolWindow.WindowFactory"/>
+        <projectService id="CatViewerWindowService" serviceImplementation="io.cjlee.gitnote.toolWindow.CatViewerWindowService"/>
+    </extensions>
 
 
 </idea-plugin>
