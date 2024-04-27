@@ -8,7 +8,7 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.JBColor
 import io.cjlee.gitnote.core.CoreHandler
 import io.cjlee.gitnote.core.Message
-import io.cjlee.gitnote.jcef.CatViewerWindowService
+import io.cjlee.gitnote.jcef.JcefViewerWindowService
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Dimension
@@ -47,7 +47,7 @@ class NoteDialog(
         if (project == null) {
             throw IllegalStateException("projec t null ")
         }
-        val window = project.getService(CatViewerWindowService::class.java).catViewerWindow
+        val window = project.getService(JcefViewerWindowService::class.java).gitNoteViewerWindow
         return JPanel().apply {
             add(window.content)
         }
