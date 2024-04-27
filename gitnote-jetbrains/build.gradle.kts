@@ -1,7 +1,10 @@
+import com.github.gradle.node.npm.task.NpxTask
+
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.0"
     id("org.jetbrains.intellij") version "1.15.0"
+    id("com.github.node-gradle.node") version "7.0.2"
 }
 
 group = "io.cjlee"
@@ -42,7 +45,12 @@ tasks {
     }
 
     runIde {
+//        dependsOn("copyGui")
         autoReloadPlugins = true
+    }
+
+    buildPlugin {
+        dependsOn("copyGui")
     }
 
     signPlugin {
@@ -54,4 +62,31 @@ tasks {
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
+
+    register<NpxTask>("buildGui") {
+        dependsOn("npmInstall") // Ensure npm is installed
+        workingDir = file("../gitnote-gui") // Set the working directory to your React project
+        command.set("npm")
+        args.set(listOf("run", "build")) // Command to build the React project
+    }
+
+    register<Copy>("copyGui") {
+        dependsOn(named("buildGui"))
+        delete("src/main/resources/webview/")
+        from("../gitnote-gui/build")
+        into("src/main/resources/webview/.")
+    }
+
+    processResources {
+        dependsOn(named("copyGui"))
+    }
 }
+
+// TODO : download node and npm if not presesnt
+//node {
+//    version.set("22.0.0")
+//    npmVersion.set("10.5.1")
+//    download.set(true)
+//    workDir.set(file("${project.buildDir}/nodejs"))
+//    npmWorkDir.set(file("${project.layout.buildDirectory}/npm"))
+//}
