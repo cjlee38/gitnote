@@ -40,3 +40,6 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### gitnote-gui build ###
+src/main/resources/webview/

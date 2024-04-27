@@ -1,54 +1,56 @@
 package io.cjlee.gitnote
 
-import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorFontType
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.JBColor
-import com.intellij.ui.components.JBScrollPane
 import io.cjlee.gitnote.core.CoreHandler
 import io.cjlee.gitnote.core.Message
-import javax.swing.*
-import java.awt.*
+import io.cjlee.gitnote.jcef.CatViewerWindowService
+import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.Dimension
+import java.awt.FlowLayout
+import java.time.LocalDateTime
+import javax.swing.Action
+import javax.swing.BoxLayout
+import javax.swing.JButton
+import javax.swing.JComponent
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.JTextArea
+import javax.swing.JTextField
 import javax.swing.border.LineBorder
 
-class NoteDialog(private val handler: CoreHandler, private val message: Message) : DialogWrapper(true) {
+class NoteDialog(
+    private val project: Project?,
+    private val handler: CoreHandler,
+    private val messages: List<Message>
+) : DialogWrapper(true) {
     private val containerPanel = JPanel()
     private lateinit var inputTextField: JTextField
 
     init {
-        title = "Ginote"
+        title = "Gitnote"
         setSize(800, 600)
         init()
     }
 
-    // TODO : cocnnect to handler
-    // TODO : show message from gitnote
+    // TODO : connect to handler
+    // TODO : convert into kotlin DSL
+    // TODO : scroll missing
+    // TODO : show icons & LocalDateTime when hover
+    // TODO : fixed size for each row
     override fun createCenterPanel(): JComponent {
-        val fixedHeight = 50
-        val fixedWidth = 700
-
-        val firstElementPanel = createElementPanel("First text element", fixedWidth)
-        val secondElementPanel = createElementPanel("Second text element", fixedWidth)
-        val thirdElementPanel = createElementPanel("Third text element", fixedWidth)
-
-        containerPanel.layout = BoxLayout(containerPanel, BoxLayout.Y_AXIS) // Vertical alignment
-        containerPanel.add(firstElementPanel)
-        containerPanel.add(secondElementPanel)
-        containerPanel.add(thirdElementPanel)
-
-        val scrollPane = JBScrollPane(containerPanel).apply {
-            verticalScrollBarPolicy = JBScrollPane.VERTICAL_SCROLLBAR_ALWAYS
-            horizontalScrollBarPolicy = JBScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        if (project == null) {
+            throw IllegalStateException("projec t null ")
         }
-
-        inputTextField = JTextField(20)
-        inputTextField.preferredSize = Dimension(fixedWidth, fixedHeight)
-
-        val mainPanel = JPanel(BorderLayout())
-        mainPanel.add(scrollPane, BorderLayout.CENTER)
-        mainPanel.add(inputTextField, BorderLayout.SOUTH)
-
-        return mainPanel
+        val window = project.getService(CatViewerWindowService::class.java).catViewerWindow
+        return JPanel().apply {
+            add(window.content)
+        }
     }
 
     override fun createActions(): Array<Action> {
@@ -70,25 +72,84 @@ class NoteDialog(private val handler: CoreHandler, private val message: Message)
     private fun createElementPanel(text: String, width: Int): JPanel {
         val editorFont = EditorColorsManager.getInstance().globalScheme.getFont(EditorFontType.PLAIN)
 
-        return JPanel().apply {
-            layout = FlowLayout(FlowLayout.LEFT)
+        val editIcon = JButton(AllIcons.Actions.EditSource).apply {
+            preferredSize = Dimension(24, 24)
+            background = Color(0, 0, 0, 0)
+            isVisible = true
+        }
+
+        val removeIcon = JButton(AllIcons.Diff.Remove).apply {
+            preferredSize = Dimension(24, 24)
+            background = Color(0, 0, 0, 0)
+            isVisible = true
+        }
+
+        val dateLabel = JLabel(LocalDateTime.now().toString()).apply {
+            font = editorFont
+            horizontalAlignment = JLabel.RIGHT
+            background = Color(0, 0, 0, 0)
+            isVisible = false
+        }
+
+//        val listener = object : MouseAdapter() {
+//            override fun mouseEntered(e: MouseEvent) {
+//                editIcon.isVisible = true
+//                removeIcon.isVisible = true
+////                dateLabel.isVisible = true
+//                repaint()
+//            }
+//
+//            override fun mouseExited(e: MouseEvent) {
+//                editIcon.isVisible = false
+//                removeIcon.isVisible = false
+////                dateLabel.isVisible = false
+//                repaint()
+//            }
+//        }
+
+        val textArea = JTextArea(text).apply {
+            isEditable = false
+            lineWrap = true
+            wrapStyleWord = true
+            font = editorFont
+//            isOpaque = false // Make transparent to mouse events
+//            addMouseListener(listener)
+        }
+
+        val rightPanel = JPanel()
+        rightPanel.layout = BoxLayout(rightPanel, BoxLayout.LINE_AXIS)
+        rightPanel.add(editIcon)
+        rightPanel.add(removeIcon)
+        val leftPanel = JPanel()
+        leftPanel.setLayout(FlowLayout(FlowLayout.LEFT));
+        leftPanel.add(dateLabel)
+
+        rightPanel.add(leftPanel)
+//        val topPanel = JPanel(BoxLayout(rightPanel, BoxLayout.LINE_AXIS)).apply {
+//            add(editIcon, FlowLayout.RIGHT)
+//            add(removeIcon, FlowLayout.RIGHT)
+//            add(dateLabel, FlowLayout.LEFT)
+//            isOpaque = false // Make panel transparent to mouse events
+//            addMouseListener(listener)
+//        }
+
+//        val bottomRightPanel = JPanel(FlowLayout(FlowLayout.RIGHT)).apply {
+//            add(dateLabel)
+//            isOpaque = false
+//            addMouseListener(listener)
+//        }
+
+
+        return JPanel(BorderLayout()).apply {
             border = LineBorder(JBColor.BLACK, 1, true)
+            preferredSize = Dimension(width, textArea.preferredSize.height)
+            isOpaque = false // Ensure the main panel is transparent to mouse events
 
-            val label = JLabel(text)
-            label.font = editorFont
-
-            val fm = label.getFontMetrics(editorFont)
-
-            val textWidth = fm.stringWidth(text)
-            val lines = Math.ceil(textWidth.toDouble() / width).toInt()
-            val lineHeight = fm.height
-
-            val calculatedHeight = lines * lineHeight
-
-            preferredSize = Dimension(width, calculatedHeight)
-
-            add(label)
+            add(rightPanel, BorderLayout.NORTH)
+            add(textArea, BorderLayout.CENTER)
+//            add(bottomRightPanel, BorderLayout.SOUTH)
+            // Hover event listener
+//            addMouseListener(listener)
         }
     }
 }
-

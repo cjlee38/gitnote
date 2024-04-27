@@ -27,8 +27,7 @@
         </component>
     </application-components>
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="CatViewer" anchor="right" factoryClass="io.cjlee.gitnote.toolWindow.WindowFactory"/>
-        <projectService id="CatViewerWindowService" serviceImplementation="io.cjlee.gitnote.toolWindow.CatViewerWindowService"/>
+        <projectService id="CatViewerWindowService" serviceImplementation="io.cjlee.gitnote.jcef.CatViewerWindowService"/>
     </extensions>
 
 

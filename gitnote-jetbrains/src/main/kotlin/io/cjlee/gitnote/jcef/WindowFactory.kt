@@ -1,9 +1,8 @@
-package io.cjlee.gitnote.toolWindow
+package io.cjlee.gitnote.jcef
 
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.wm.ToolWindow
-import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.jcef.JBCefBrowser
 import org.cef.CefApp
 import org.cef.browser.CefBrowser
@@ -21,16 +20,8 @@ import java.io.InputStream
 import java.net.URLConnection
 import javax.swing.JComponent
 
-class WindowFactory : ToolWindowFactory {
-
-    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val component = toolWindow.component
-        val catViewerWindow = project.getService(CatViewerWindowService::class.java).catViewerWindow
-        component.parent.add(catViewerWindow.getContent())
-    }
-}
-
-class CatViewerWindowService(val project: Project) {
+@Service(Service.Level.PROJECT)
+class CatViewerWindowService(project: Project) {
     val catViewerWindow = CatViewerWindow(project)
 }
 
@@ -38,18 +29,20 @@ class CatViewerWindow(private val project: Project) {
     private val webView: JBCefBrowser by lazy {
         val browser = JBCefBrowser()
         registerAppSchemeHandler()
-        browser.loadURL("http://myapp/index.html")
+        browser.loadURL("http://gitnote/index.html")
+        // TODO : Don't use Project as disposable in plugin code(Choosing a Disposable Parent)
         Disposer.register(project, browser)
         browser
     }
 
-    fun getContent(): JComponent = webView.component
+    val content: JComponent
+        get() = webView.component
 
     private fun registerAppSchemeHandler() {
         CefApp.getInstance()
             .registerSchemeHandlerFactory(
                 "http",
-                "myapp",
+                "gitnote",
                 CustomSchemeHandlerFactory()
             )
     }
@@ -71,7 +64,7 @@ class CustomResourceHandler : CefResourceHandler {
         cefCallback: CefCallback
     ): Boolean {
         val url = cefRequest.url ?: return false
-        val pathToResource = url.replace("http://myapp", "webview/")
+        val pathToResource = url.replace("http://gitnote/", "webview/")
         val resource = this::class.java.classLoader.getResource(pathToResource)
         state = OpenedConnection(resource.openConnection())
         cefCallback.Continue()
@@ -167,7 +160,7 @@ class OpenedConnection(private val connection: URLConnection) : ResourceHandlerS
     }
 }
 
-object ClosedConnection : ResourceHandlerState {
+data object ClosedConnection : ResourceHandlerState {
     override fun getResponseHeaders(
         cefResponse: CefResponse,
         responseLength: IntRef,

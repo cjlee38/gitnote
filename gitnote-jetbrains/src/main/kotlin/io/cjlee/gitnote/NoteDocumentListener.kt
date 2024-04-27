@@ -24,6 +24,7 @@ class NoteDocumentListener(
         }
     }
 
+    // TODO : how to invoke in bulk mode ?
     override fun documentChanged(event: DocumentEvent) {
         println("======documentChanged")
 
@@ -54,18 +55,16 @@ class NoteDocumentListener(
             val endLine = 5
             markupModel.addLineHighlighter(null, startLine, 0).apply {
                 val mockMessage = Message("id", 3, 5, "mock message", listOf(), LocalDateTime.now())
-                gutterIconRenderer = NoteIconGutterIconRenderer(file.path, mockMessage, handler)
+                gutterIconRenderer = NoteIconGutterIconRenderer(file.path, listOf(mockMessage), handler)
 //                lineMarkerRenderer = NoteStrokeLineMarkerRenderer(startLine, endLine)
             }
         } else {
-            note.messages.forEach {
-                val startLine = it.startLine
-                val endLine = it.endLine
-                markupModel.addLineHighlighter(null, startLine - 1, 0).apply {
-                    gutterIconRenderer = NoteIconGutterIconRenderer(file.path, it, handler)
-//                    lineMarkerRenderer = NoteStrokeLineMarkerRenderer(startLine, endLine)
+            note.messages.groupBy { it.startLine }
+                .forEach { (startLine, messages) ->
+                    markupModel.addLineHighlighter(null, startLine - 1, 0).apply {
+                        gutterIconRenderer = NoteIconGutterIconRenderer(file.path, messages, handler)
+                    }
                 }
-            }
         }
     }
 

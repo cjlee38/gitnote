@@ -12,12 +12,14 @@ import javax.swing.Icon
 // TODO : show hand cursor when hover
 class NoteIconGutterIconRenderer(
     private val filePath: String,
-    private val message: Message,
+    messages: List<Message>,
     private val handler: CoreHandler
 ) : GutterIconRenderer() {
+    private val messages = messages.sortedByDescending { it.createdAt }
+
     override fun getIcon(): Icon = ICON
 
-    override fun getTooltipText(): String = message.message
+    override fun getTooltipText(): String = messages.last().message
 
     override fun equals(other: Any?): Boolean = other is GutterIconRenderer && other.icon == this.icon
 
@@ -28,10 +30,10 @@ class NoteIconGutterIconRenderer(
             .let { IconUtil.scale(it, null, (13.0 / it.iconWidth).toFloat()) }
     }
 
-    override fun getClickAction(): AnAction? {
+    override fun getClickAction(): AnAction {
         return object : AnAction() {
             override fun actionPerformed(e: AnActionEvent) {
-                NoteDialog(handler, message).show()
+                NoteDialog(e.project, handler, messages).show()
             }
         }
     }
