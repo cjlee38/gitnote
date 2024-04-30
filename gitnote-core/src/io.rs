@@ -43,11 +43,7 @@ pub fn read_valid_note(file_path: &PathBuf) -> anyhow::Result<Note> {
 
     let valid_messages = messages
         .iter()
-        .filter(|msg| {
-            blob.content
-                .windows(msg.snippet.len())
-                .any(|window| window == msg.snippet.as_slice())
-        })
+        .filter(|msg| { blob.content.iter().any(|line| line == &msg.snippet) })
         .cloned()
         .collect();
 

@@ -46,15 +46,6 @@ class GitNoteViewerWindow(private val project: Project, private val protocolHand
         CefApp.getInstance()
             .registerSchemeHandlerFactory("http", "gitnote", JcefSchemeHandlerFactory())
     }
-
-//    fun sendToWebView(messageType: String, data: Any) {
-//        val snippet = buildJavascriptMessageSnippet(messageType, data)
-//        webView.executeJavaScriptAsync(snippet)
-//    }
-//
-//    private fun buildJavascriptMessageSnippet(messageType: String, data: Any): String {
-//        return """window.handleMessage({type : '$messageType', data : '$data'})"""
-//    }
 }
 
 class JCefDebugDisplayHandler : CefDisplayHandler {

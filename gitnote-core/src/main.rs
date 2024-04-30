@@ -28,14 +28,14 @@ fn main() -> ExitCode {
         Some(("add", add_matches)) => {
             handle_command(handlers::add_note(
                 add_matches.get_one::<String>("file").expect("required").clone(),
-                add_matches.get_one::<String>("line").expect("required").clone(),
+                add_matches.get_one::<String>("line").expect("required").parse::<usize>().expect("required"),
                 add_matches.get_one::<String>("message").expect("required").clone(),
             ))
         }
         Some(("edit", edit_matches)) => {
             handle_command(handlers::edit_note(
                 edit_matches.get_one::<String>("file").expect("required").clone(),
-                edit_matches.get_one::<String>("line").expect("required").clone(),
+                edit_matches.get_one::<String>("line").expect("required").parse::<usize>().expect("required"),
                 edit_matches.get_one::<String>("message").expect("required").clone(),
             ))
         }
@@ -48,7 +48,7 @@ fn main() -> ExitCode {
         Some(("delete", delete_matches)) => {
             handle_command(handlers::delete_note(
                 delete_matches.get_one::<String>("file").expect("required").clone(),
-                delete_matches.get_one::<String>("line").expect("required").clone(),
+                delete_matches.get_one::<String>("line").expect("required").parse::<usize>().expect("required"),
             ))
         }
         e => {

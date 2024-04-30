@@ -21,6 +21,10 @@ const sendToIde = (messageType, data, messageId, attempt = 0) => {
     try {
         sendToIde0(messageType, data, messageId);
     } catch (error) {
+        if (attempt >= 5) {
+            console.error("sendToIde failed after 5 attempts.");
+            throw error;
+        }
         setTimeout(
             () => sendToIde(messageType, data, messageId, attempt + 1),
             Math.pow(2, attempt) * 1000,

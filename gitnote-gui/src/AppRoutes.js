@@ -5,7 +5,7 @@
 //     return (
 //         <BrowserRouter>
 //             <Routes>
-//                 <Route path="/te" component={Note}/>
+//                 <Route path="/" component={Note}/>
 //             </Routes>
 //         </BrowserRouter>
 //     )

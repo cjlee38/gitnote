@@ -1,4 +1,3 @@
-use std::ops::Add;
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context};
@@ -9,20 +8,19 @@ use crate::libgit::{find_git_blob, find_root_path, get_diff, is_file_staged, sta
 use crate::note::Message;
 use crate::stdio::{inquire_boolean, write_out};
 
-pub fn add_note(file_name: String, line_expr: String, message: String) -> anyhow::Result<()> {
+pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
     validate_file_staged(&file_path)?;
 
     let blob = find_git_blob(&file_path)?;
-    let (start, end) = parse_line_range(&line_expr)?;
 
     let mut note = read_or_create_note(&file_path)?;
-    let message = Message::new(&blob, start, end, message)?;
+    let message = Message::new(&blob, line, message)?;
     note.append(message)?;
     write_note(&note)?;
     println!(
-        "successfully added comment for {:?} in range {}:{}",
-        &file_path, start, end
+        "successfully added comment for {:?} in range {}",
+        &file_path, line
     );
     return Ok(());
 }
@@ -38,22 +36,6 @@ fn validate_file_staged(file_path: &PathBuf) -> anyhow::Result<()> {
         }
     }
     return Ok(());
-}
-
-fn parse_line_range(line_expr: &str) -> anyhow::Result<(usize, usize)> {
-    let parts: Vec<&str> = line_expr.split(':').collect();
-    match parts.len() {
-        1 => {
-            let line = parts[0].parse::<usize>()?;
-            Ok((line, line))
-        }
-        2 => {
-            let start = parts[0].parse::<usize>()?;
-            let end = parts[1].parse::<usize>()?;
-            Ok((start, end))
-        }
-        _ => Err(anyhow!("invalid line range format : {line_expr}")),
-    }
 }
 
 fn resolve_path(input_path: &String) -> anyhow::Result<PathBuf> {
@@ -82,7 +64,7 @@ pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
     } else {
         // TODO : prettify output
         note.messages.iter().for_each(|message| {
-            message.snippet.iter().for_each(|line| write_out(line));
+            write_out(&format!("{}", message.line));
             write_out(&format!("{}", message.message.red()))
         });
     }
@@ -90,27 +72,25 @@ pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn edit_note(file_name: String, line_expr: String, message: String) -> anyhow::Result<()> {
+pub fn edit_note(file_name: String, line: usize, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
     validate_file_staged(&file_path)?;
 
     let blob = find_git_blob(&file_path)?;
-    let (start, end) = parse_line_range(&line_expr)?;
 
     let mut note = read_all_note(&file_path)?;
-    let message = Message::new(&blob, start, end, message)?;
+    let message = Message::new(&blob, line, message)?;
     note.edit(message);
 
     write_note(&note)?;
     return Ok(());
 }
 
-pub fn delete_note(file_name: String, line_expr: String) -> anyhow::Result<()> {
+pub fn delete_note(file_name: String, line: usize) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
-    let (start, end) = parse_line_range(&line_expr)?;
 
     let mut note = read_all_note(&file_path)?;
-    note.delete(start, end);
+    note.delete(line);
     write_note(&note)?;
     return Ok(());
 }

@@ -1,5 +1,11 @@
 gitnote-core/target
 .idea
 
-# for develop
+# for temporary develop
 gitnote-test
+/test-add.sh
+/test-clear.sh
+/test-delete.sh
+/test-edit.sh
+/test-release.sh
+/test-view.sh

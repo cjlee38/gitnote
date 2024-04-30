@@ -31,39 +31,38 @@ impl Note {
     }
 
     pub fn append(&mut self, message: Message) -> anyhow::Result<()> {
-        // self.validate_line_distinct(&message); // TODO : disable temporarily for development convenience.
+        self.validate_line_distinct(&message);
         self.messages.push(message);
         return Ok(());
     }
 
-    pub fn edit(&mut self, new_message: Message) {
-        if let Some((index, _)) = self.find_message_indexed(new_message.start, new_message.end) {
-            self.messages.remove(index);
-            self.messages.push(new_message);
-        }
-    }
-
-    pub fn delete(&mut self, start: usize, end: usize) {
-        if let Some((index, _)) = self.find_message_indexed(start, end) {
-            self.messages.remove(index);
-        }
-    }
-
     fn validate_range_distinct(&self, message: &Message) -> anyhow::Result<()> {
-        let (start, end) = (message.start, message.end);
-        if let None = self.find_message_indexed(start, end) {
+        if let Some(_) = self.find_message_indexed(message.line) {
             return Err(anyhow!(format!(
-                "{start}:{end} line duplicated. consider to use `edit` instead."
+                "{line} line duplicated. consider to use `edit` instead."
             )));
         }
         return Ok(());
     }
 
-    fn find_message_indexed(&self, start: usize, end: usize) -> Option<(usize, &Message)> {
+    pub fn edit(&mut self, new_message: Message) {
+        if let Some((index, _)) = self.find_message_indexed(new_message.line) {
+            self.messages.remove(index);
+            self.messages.push(new_message);
+        }
+    }
+
+    pub fn delete(&mut self, line: usize) {
+        if let Some((index, _)) = self.find_message_indexed(line) {
+            self.messages.remove(index);
+        }
+    }
+
+    fn find_message_indexed(&self, line: usize) -> Option<(usize, &Message)> {
         let len = self.messages.len();
         for index in 0..len {
             let message = &self.messages[index];
-            if message.start == start && message.end == end {
+            if message.line == line {
                 return Some((index, &message));
             }
         }
@@ -74,34 +73,25 @@ impl Note {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
     id: String,
-    start: usize,
-    end: usize,
-    pub snippet: Vec<String>,
+    pub line: usize,
+    pub snippet: String,
     pub message: String,
     #[serde(with = "datetime")]
     created_at: DateTime<Utc>,
 }
 
 impl Message {
-    pub fn new(blob: &GitBlob, start: usize, end: usize, message: String) -> anyhow::Result<Self> {
-        if start > end {
-            return Err(anyhow!("start({start}) should be lower than end({end})"));
-        }
+    pub fn new(blob: &GitBlob, line: usize, message: String) -> anyhow::Result<Self> {
         let snippet = blob
             .content
-            .get(start - 1..end)
+            .get(line)
             .with_context(|| {
-                format!(
-                    "specified end inclusive({}) is too big for file {:?}",
-                    end, &blob.file_path
-                )
-            })?
-            .to_vec();
+                format!("specified line({}) is too big for file {:?}", line, &blob.file_path)
+            })?.to_string();
 
         Ok(Message {
             id: blob.id.to_string(),
-            start,
-            end,
+            line,
             snippet,
             message,
             created_at: Utc::now(),
