@@ -1,15 +1,30 @@
-import {Button, Space, Tooltip} from "antd";
+import {Button, ConfigProvider, Flex, Space, Tooltip} from "antd";
 import {DeleteOutlined, EditOutlined} from "@ant-design/icons";
 import TextareaAutosize from 'react-textarea-autosize';
+import { TinyColor } from '@ctrl/tinycolor';
 import {useState} from "react";
 
-const Message = () => {
+const Message = (props) => {
+    const [messageValue, setMessageValue] = useState(props.message);
     const [showIcons, setShowIcons] = useState(false);
-    const [isEdit, setIsEdit] = useState(true);
+    const [isEdit, setIsEdit] = useState(false);
 
+    const colors1 = ['#6253E1', '#04BEFE'];
+    const getHoverColors = (colors) =>
+        colors.map((color) => new TinyColor(color).lighten(5).toString());
+    const getActiveColors = (colors) =>
+        colors.map((color) => new TinyColor(color).darken(5).toString());
 
     const handleEdit = () => {
         setIsEdit(true);
+    }
+
+    function handleOKClick() {
+        setIsEdit(false);
+    }
+
+    function handleCancelClick() {
+        setIsEdit(false);
     }
 
     return (
@@ -28,8 +43,9 @@ const Message = () => {
             >
                 <TextareaAutosize
                     style={{resize: 'none', border: 'none'}}
-                    defaultValue="I really enjoyed biking yesterday! And this is very very long string And this is very very long string And this is very very long string long may the king"
-                    readOnly={true}
+                    value={messageValue}
+                    onChange={(e) => setMessageValue(e.target.value)}
+                    readOnly={!isEdit}
                     wrap="soft"
                     cols={50}
                 />
@@ -63,10 +79,24 @@ const Message = () => {
                 )}
             </Space>
             {isEdit && (
-                <Space style={{float: "right"}}>
-                    <Button type="primary">OK</Button>
-                    <Button type="primary">CANCEL</Button>
-                </Space>
+                <Flex style={{float: "right", gap: 'large'}}>
+                    <ConfigProvider
+                        theme={{
+                            components: {
+                                Button: {
+                                    colorPrimary: `linear-gradient(90deg,  ${colors1.join(', ')})`,
+                                    colorPrimaryHover: `linear-gradient(90deg, ${getHoverColors(colors1).join(', ')})`,
+                                    colorPrimaryActive: `linear-gradient(90deg, ${getActiveColors(colors1).join(', ')})`,
+                                    lineWidth: 0,
+                                },
+                            },
+                        }}
+                    >
+                        <Button type="primary" onClick={() => handleOKClick()}>OK</Button>
+                        <Button type="primary" onClick={() => handleCancelClick()}>CANCEL</Button>
+                    </ConfigProvider>
+
+                </Flex>
             )}
         </Space>
     );

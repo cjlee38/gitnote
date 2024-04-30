@@ -4,9 +4,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
+import com.intellij.ui.jcef.JBCefClient
 import com.intellij.ui.jcef.JBCefJSQuery
+import com.intellij.ui.jcef.executeJavaScriptAsync
 import io.cjlee.gitnote.jcef.protocol.JcefInjectionLoadHandler
 import io.cjlee.gitnote.jcef.protocol.MessageProtocolFrontHandler
+import io.cjlee.gitnote.jcef.protocol.MessageProtocolHandler
 import org.cef.CefApp
 import org.cef.CefSettings
 import org.cef.browser.CefBrowser
@@ -15,15 +18,15 @@ import org.cef.handler.CefDisplayHandler
 import javax.swing.JComponent
 
 
-class GitNoteViewerWindow(private val project: Project) {
-    private val webView: JBCefBrowser by lazy {
-        val browser = JBCefBrowser().apply { loadURL("http://gitnote/index.html") }
+class GitNoteViewerWindow(private val project: Project, private val protocolHandlers: Map<String, MessageProtocolHandler>) {
+    private val webView: JBCefBrowser = JBCefBrowser().apply {
+        this.loadURL("http://gitnote/index.html")
         registerAppSchemeHandler()
-        registerProtocolHandlers(browser)
+        registerProtocolHandlers(this)
+        jbCefClient.setProperty(JBCefClient.Properties.JS_QUERY_POOL_SIZE, 200)
 
         // TODO : Don't use Project as disposable in plugin code(Choosing a Disposable Parent)
-        Disposer.register(project, browser)
-        browser
+        Disposer.register(project, this)
     }
 
     private fun registerProtocolHandlers(browser: JBCefBrowser) {
@@ -31,7 +34,7 @@ class GitNoteViewerWindow(private val project: Project) {
 
         // inject query into javascript
         browser.jbCefClient.addLoadHandler(JcefInjectionLoadHandler(jsQuery), browser.cefBrowser)
-        jsQuery.addHandler(MessageProtocolFrontHandler(emptyMap())) // empty map for now
+        jsQuery.addHandler(MessageProtocolFrontHandler(browser, protocolHandlers))
 
         browser.jbCefClient.addDisplayHandler(JCefDebugDisplayHandler(), browser.cefBrowser) // for debugging
     }
@@ -43,9 +46,18 @@ class GitNoteViewerWindow(private val project: Project) {
         CefApp.getInstance()
             .registerSchemeHandlerFactory("http", "gitnote", JcefSchemeHandlerFactory())
     }
+
+//    fun sendToWebView(messageType: String, data: Any) {
+//        val snippet = buildJavascriptMessageSnippet(messageType, data)
+//        webView.executeJavaScriptAsync(snippet)
+//    }
+//
+//    private fun buildJavascriptMessageSnippet(messageType: String, data: Any): String {
+//        return """window.handleMessage({type : '$messageType', data : '$data'})"""
+//    }
 }
 
-class JCefDebugDisplayHandler: CefDisplayHandler {
+class JCefDebugDisplayHandler : CefDisplayHandler {
     override fun onAddressChange(browser: CefBrowser?, frame: CefFrame?, url: String?) {
 
     }

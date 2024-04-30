@@ -1,11 +1,17 @@
 import React from "react";
 import Note from "./components/Note";
-import {sendToIde} from "./protocol/Protocol";
+import {useSetup} from "./protocol/Setup";
+import {requestToIde} from "./protocol/Protocol";
 
 function App() {
     const handleButtonClick = () => {
-        sendToIde('Hello from React! send');
+        requestToIde('Hello from React! send')
+            .then((data) => {
+                console.log("requestToIde got data : " + data);
+            });
     };
+
+    useSetup()
 
     return (
         <div style={{maxWidth: "100%", padding: "10px 40px"}}>
