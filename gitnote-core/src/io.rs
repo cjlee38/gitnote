@@ -1,11 +1,13 @@
+use std::fmt::format;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
+use git2::{DiffLine, DiffOptions, Oid, Repository};
 
-use crate::libgit::{find_git_blob, find_gitnote_path};
-use crate::note::Note;
+use crate::libgit::{find_all_git_blobs, find_gitnote_path, GitBlob};
+use crate::note::{Message, Note};
 
 pub fn write_note(note: &Note) -> anyhow::Result<()> {
     let note_path = find_note_path(&note.id)?;
@@ -38,16 +40,90 @@ pub fn read_all_note(file_path: &PathBuf) -> anyhow::Result<Note> {
 // TODO : demo-version implementation, so may lead to bad performance.
 pub fn read_valid_note(file_path: &PathBuf) -> anyhow::Result<Note> {
     let all_note = read_all_note(file_path)?;
-    let blob = find_git_blob(file_path)?;
-    let messages = &all_note.messages;
+    let git_blobs = find_all_git_blobs(file_path)?;
+    if (&git_blobs).is_empty() {
+        return Err(anyhow!(format!("No blobs found for {:?}", file_path)));
+    }
 
-    let valid_messages = messages
-        .iter()
-        .filter(|msg| { blob.content.iter().any(|line| line == &msg.snippet) })
-        .cloned()
-        .collect();
-
+    let valid_messages: Vec<Message> = all_note.messages.into_iter()
+        .filter_map(|message| {
+            get_valid_message(&git_blobs, message)
+        }).collect();
     return Ok(Note::from(&all_note.id, &all_note.reference, valid_messages));
+}
+
+fn get_valid_message(git_blobs: &Vec<GitBlob>, message: Message) -> Option<Message> {
+    let repo = Repository::discover(".").ok()?;
+    let pos = git_blobs.iter().position(|blob| blob.id == message.id)?;
+    let mut diff_model = DiffModel::of(&message);
+    let slice = &git_blobs[pos..];
+    for window in slice.windows(2) {
+        let old = &window[0];
+        let new = &window[1];
+        let old_blob = repo.find_blob(Oid::from_str(&old.id).ok()?).ok()?;
+        let new_blob = repo.find_blob(Oid::from_str(&new.id).ok()?).ok()?;
+        let mut opts = DiffOptions::new();
+        repo.diff_blobs(
+            Some(&old_blob),
+            None,
+            Some(&new_blob),
+            None,
+            Some(&mut opts),
+            None,
+            None,
+            None,
+            Some(&mut |d, h, l| is_fine(&l, &mut diff_model)),
+        ).ok()?;
+        if !diff_model.valid
+            .iter()
+            .fold(false, |a, &b| a | b) {
+            return None;
+        }
+        diff_model.valid.clear();
+    }
+    Some(message)
+}
+
+
+#[derive(Debug)]
+struct DiffModel {
+    line: usize,
+    snippet: String,
+    valid: Vec<bool>,
+}
+
+impl DiffModel {
+    pub fn of(message: &Message) -> Self {
+        DiffModel {
+            line: message.line,
+            snippet: (&message).snippet.to_string(),
+            valid: Vec::new(),
+        }
+    }
+}
+
+fn is_fine(line: &DiffLine, diff_model: &mut DiffModel) -> bool {
+    if line.origin() != ' ' {
+        return true;
+    }
+    let old_line = line.old_lineno()
+        .expect("[unexpected error] old_lineno missing");
+    let content = std::str::from_utf8(line.content())
+        .expect("[unexpected error] content utf-8 missing");
+    let new_line = line.new_lineno()
+        .expect("[unexpected error] old_lineno missing");
+
+    println!("==== diff model ... {:?} ||| {old_line}, {new_line}, {}, {}", diff_model, content, diff_model.line == old_line as usize && content.contains(&diff_model.snippet));
+    if diff_model.line == old_line as usize {
+
+        if content.contains(&diff_model.snippet) {
+            diff_model.line = new_line as usize;
+            diff_model.valid.push(true);
+        } else {
+            diff_model.valid.push(false);
+        }
+    }
+    return true;
 }
 
 fn find_note_path(id: &String) -> anyhow::Result<PathBuf> {

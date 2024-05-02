@@ -31,15 +31,15 @@ impl Note {
     }
 
     pub fn append(&mut self, message: Message) -> anyhow::Result<()> {
-        self.validate_line_distinct(&message);
+        self.validate_line_distinct(&message)?;
         self.messages.push(message);
         return Ok(());
     }
 
-    fn validate_range_distinct(&self, message: &Message) -> anyhow::Result<()> {
+    fn validate_line_distinct(&self, message: &Message) -> anyhow::Result<()> {
         if let Some(_) = self.find_message_indexed(message.line) {
             return Err(anyhow!(format!(
-                "{line} line duplicated. consider to use `edit` instead."
+                "{} line duplicated. consider to use `edit` instead.", message.line
             )));
         }
         return Ok(());
@@ -72,7 +72,7 @@ impl Note {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
-    id: String,
+    pub id: String,
     pub line: usize,
     pub snippet: String,
     pub message: String,
