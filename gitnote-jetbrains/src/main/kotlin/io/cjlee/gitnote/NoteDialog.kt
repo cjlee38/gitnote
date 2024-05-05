@@ -1,5 +1,6 @@
 package io.cjlee.gitnote
 
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
@@ -29,13 +30,14 @@ class NoteDialog(
             throw IllegalStateException("project null")
         }
         // TODO : how to pass the messages to window to shows up?
-        val messages = listOf("mock message 1", "mock message 2", "mock message3")
+//        val messages = listOf("mock message 1", "mock message 2", "mock message3")
         val service = project.getService(JcefViewerWindowService::class.java)
 
         val protocolHandlers = mapOf(
             "initialMessages" to object: MessageProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
-                    val resp = jacksonObjectMapper().writeValueAsString(messages)
+                    val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
+                    val resp = mapper.writeValueAsString(messages)
                     return JBCefJSQuery.Response(resp)
                 }
             }

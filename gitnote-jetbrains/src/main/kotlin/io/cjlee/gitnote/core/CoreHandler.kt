@@ -11,8 +11,8 @@ class CoreHandler(private val connector: CoreConnector) {
         .registerModule(JavaTimeModule())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
-    fun add(filePath: String, startLine: Int, endLine: Int, message: String) {
-        connector.add(filePath, startLine, endLine, message)
+    fun add(filePath: String, line: Int, message: String) {
+        connector.add(filePath, line, message)
     }
 
     fun read(filePath: String): Note? {
@@ -20,17 +20,14 @@ class CoreHandler(private val connector: CoreConnector) {
         if (response.exitCode == 0) {
             return runCatching { mapper.readValue<Note>(response.text) }.getOrNull()
         }
-//        println("=== ERROR read failed. response was $response")
         return null
     }
 
-    fun update(filePath: String, startLine: Int, endLine: Int, message: String) {
-        println("=====update filePath = $filePath, startLine = $startLine, endLine = $endLine, message = $message")
-
-//        connector.update(filePath, startLine, endLine, message)
+    fun update(filePath: String, line: Int, message: String) {
+        connector.update(filePath, line, message)
     }
 
     fun delete(filePath: String, startLine: Int, endLine: Int) {
-        connector.delete(filePath, startLine, endLine)
+        connector.delete(filePath, startLine)
     }
 }

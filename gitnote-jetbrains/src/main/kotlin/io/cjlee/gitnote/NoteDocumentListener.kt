@@ -5,9 +5,7 @@ import com.intellij.openapi.editor.event.BulkAwareDocumentListener
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.vfs.VirtualFile
 import io.cjlee.gitnote.core.CoreHandler
-import io.cjlee.gitnote.core.Message
 import io.cjlee.gitnote.core.Note
-import java.time.LocalDateTime
 
 class NoteDocumentListener(
     private val editor: Editor,
@@ -49,23 +47,12 @@ class NoteDocumentListener(
         // Clear existing gutter icons and highlights
         editor.markupModel.removeAllHighlighters()
 
-        if (!::note.isInitialized) {
-            // for test
-            val startLine = 3
-            val endLine = 5
-            markupModel.addLineHighlighter(null, startLine, 0).apply {
-                val mockMessage = Message("id", 3, 5, "mock message", listOf(), LocalDateTime.now())
-                gutterIconRenderer = NoteIconGutterIconRenderer(file.path, listOf(mockMessage), handler)
-//                lineMarkerRenderer = NoteStrokeLineMarkerRenderer(startLine, endLine)
-            }
-        } else {
-            note.messages.groupBy { it.startLine }
-                .forEach { (startLine, messages) ->
-                    markupModel.addLineHighlighter(null, startLine - 1, 0).apply {
-                        gutterIconRenderer = NoteIconGutterIconRenderer(file.path, messages, handler)
-                    }
+        note.messages.groupBy { it.line }
+            .forEach { (line, messages) ->
+                markupModel.addLineHighlighter(null, line - 1, 0).apply {
+                    gutterIconRenderer = NoteIconGutterIconRenderer(file.path, messages, handler)
                 }
-        }
+            }
     }
 
     override fun equals(other: Any?): Boolean {

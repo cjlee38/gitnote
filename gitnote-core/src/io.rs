@@ -1,4 +1,3 @@
-use std::fmt::format;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
@@ -57,22 +56,24 @@ fn get_valid_message(git_blobs: &Vec<GitBlob>, message: Message) -> Option<Messa
     let pos = git_blobs.iter().position(|blob| blob.id == message.id)?;
     let mut diff_model = DiffModel::of(&message);
     let slice = &git_blobs[pos..];
+    let mut diff_options = DiffOptions::new();
+    diff_options.force_text(true);
+
     for window in slice.windows(2) {
-        let old = &window[0];
-        let new = &window[1];
-        let old_blob = repo.find_blob(Oid::from_str(&old.id).ok()?).ok()?;
-        let new_blob = repo.find_blob(Oid::from_str(&new.id).ok()?).ok()?;
-        let mut opts = DiffOptions::new();
+        let old_blob = repo.find_blob(Oid::from_str(&&window[0].id).ok()?).ok()?;
+        let new_blob = repo.find_blob(Oid::from_str(&&window[1].id).ok()?).ok()?;
+
+
         repo.diff_blobs(
             Some(&old_blob),
             None,
             Some(&new_blob),
             None,
-            Some(&mut opts),
+            Some(&mut diff_options),
             None,
             None,
             None,
-            Some(&mut |d, h, l| is_fine(&l, &mut diff_model)),
+            Some(&mut |_, _, l| is_valid_line(&l, &mut diff_model)),
         ).ok()?;
         if !diff_model.valid
             .iter()
@@ -102,7 +103,7 @@ impl DiffModel {
     }
 }
 
-fn is_fine(line: &DiffLine, diff_model: &mut DiffModel) -> bool {
+fn is_valid_line(line: &DiffLine, diff_model: &mut DiffModel) -> bool {
     if line.origin() != ' ' {
         return true;
     }
@@ -113,9 +114,7 @@ fn is_fine(line: &DiffLine, diff_model: &mut DiffModel) -> bool {
     let new_line = line.new_lineno()
         .expect("[unexpected error] old_lineno missing");
 
-    println!("==== diff model ... {:?} ||| {old_line}, {new_line}, {}, {}", diff_model, content, diff_model.line == old_line as usize && content.contains(&diff_model.snippet));
     if diff_model.line == old_line as usize {
-
         if content.contains(&diff_model.snippet) {
             diff_model.line = new_line as usize;
             diff_model.valid.push(true);

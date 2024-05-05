@@ -5,7 +5,7 @@ import { TinyColor } from '@ctrl/tinycolor';
 import {useState} from "react";
 
 const Message = (props) => {
-    const [messageValue, setMessageValue] = useState(props.message);
+    const [message, setMessage] = useState(props.message);
     const [showIcons, setShowIcons] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
 
@@ -42,9 +42,10 @@ const Message = (props) => {
                    onMouseLeave={() => setShowIcons(false)}
             >
                 <TextareaAutosize
+                    minRows={3}
                     style={{resize: 'none', border: 'none'}}
-                    value={messageValue}
-                    onChange={(e) => setMessageValue(e.target.value)}
+                    value={message.message}
+                    onChange={(e) => setMessage(e.target.value)}
                     readOnly={!isEdit}
                     wrap="soft"
                     cols={50}

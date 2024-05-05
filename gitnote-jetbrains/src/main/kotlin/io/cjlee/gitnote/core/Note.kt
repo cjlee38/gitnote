@@ -12,12 +12,9 @@ data class Note(
 
 data class Message(
     val id: String,
-    @JsonAlias("start")
-    val startLine: Int,
-    @JsonAlias("end")
-    val endLine: Int,
+    val line: Int,
     val message: String,
-    val snippet: List<String>,
+    val snippet: String,
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
     @JsonAlias("created_at")
     val createdAt: LocalDateTime,
