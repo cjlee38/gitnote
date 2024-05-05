@@ -6,7 +6,7 @@ export async function requestToIde(messageType, data) {
     return new Promise((resolve) => {
         const handler = (event) => {
             if (event.data.messageId === messageId) {
-                console.log("requestToIde got data : " + event.data.data);
+                console.log("requestToIde got data : " + messageId + "..." + event.data.data);
                 window.removeEventListener("message", handler);
                 resolve(JSON.parse(event.data.data));
             }

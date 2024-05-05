@@ -27,7 +27,7 @@ class CoreHandler(private val connector: CoreConnector) {
         connector.update(filePath, line, message)
     }
 
-    fun delete(filePath: String, startLine: Int, endLine: Int) {
-        connector.delete(filePath, startLine)
+    fun delete(filePath: String, line: Int) {
+        connector.delete(filePath, line)
     }
 }

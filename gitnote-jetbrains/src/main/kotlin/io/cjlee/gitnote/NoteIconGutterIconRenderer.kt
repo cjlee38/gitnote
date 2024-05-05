@@ -33,7 +33,7 @@ class NoteIconGutterIconRenderer(
     override fun getClickAction(): AnAction {
         return object : AnAction() {
             override fun actionPerformed(e: AnActionEvent) {
-                NoteDialog(e.project, handler, messages).show()
+                NoteDialog(e.project, filePath, handler, messages).show()
             }
         }
     }

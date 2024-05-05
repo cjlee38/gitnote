@@ -1,19 +1,16 @@
-import {Button, ConfigProvider, Flex, Space, Tooltip} from "antd";
+import {Button, Flex, Space, Tooltip} from "antd";
 import {DeleteOutlined, EditOutlined} from "@ant-design/icons";
 import TextareaAutosize from 'react-textarea-autosize';
-import { TinyColor } from '@ctrl/tinycolor';
 import {useState} from "react";
+import {requestToIde} from "../protocol/Protocol";
 
 const Message = (props) => {
-    const [message, setMessage] = useState(props.message);
+    const theme = props.theme;
+    const message = props.message;
+    const [messageValue, setMessageValue] = useState(message.message);
+    const [prevMessageValue, setPrevMessageValue] = useState(message.message);
     const [showIcons, setShowIcons] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
-
-    const colors1 = ['#6253E1', '#04BEFE'];
-    const getHoverColors = (colors) =>
-        colors.map((color) => new TinyColor(color).lighten(5).toString());
-    const getActiveColors = (colors) =>
-        colors.map((color) => new TinyColor(color).darken(5).toString());
 
     const handleEdit = () => {
         setIsEdit(true);
@@ -21,10 +18,22 @@ const Message = (props) => {
 
     function handleOKClick() {
         setIsEdit(false);
+        // console.log(`prevMessage = ${JSON.stringify(prevMessageValue)}`)
+        // console.log(`message = ${JSON.stringify(messageValue)}`)
+        console.log(`message combine result = ${JSON.stringify(Object.assign({}, message, {message: messageValue}))}`)
+        requestToIde("updateMessage", Object.assign({}, message, {message: messageValue}))
+            .then((data) => {
+                setPrevMessageValue(messageValue);
+                setMessageValue(prevMessageValue);
+                console.log("updateMessage got data : " + data);
+            }).catch((error) => {
+            console.log("updateMessage got error : " + error);
+        });
     }
 
     function handleCancelClick() {
         setIsEdit(false);
+        setMessageValue(prevMessageValue);
     }
 
     return (
@@ -43,9 +52,9 @@ const Message = (props) => {
             >
                 <TextareaAutosize
                     minRows={3}
-                    style={{resize: 'none', border: 'none'}}
-                    value={message.message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    style={{resize: 'none', border: 'none', backgroundColor: theme.editorBackground, color: theme.text}}
+                    value={messageValue}
+                    onChange={(e) => setMessageValue(e.target.value)}
                     readOnly={!isEdit}
                     wrap="soft"
                     cols={50}
@@ -81,22 +90,24 @@ const Message = (props) => {
             </Space>
             {isEdit && (
                 <Flex style={{float: "right", gap: 'large'}}>
-                    <ConfigProvider
-                        theme={{
-                            components: {
-                                Button: {
-                                    colorPrimary: `linear-gradient(90deg,  ${colors1.join(', ')})`,
-                                    colorPrimaryHover: `linear-gradient(90deg, ${getHoverColors(colors1).join(', ')})`,
-                                    colorPrimaryActive: `linear-gradient(90deg, ${getActiveColors(colors1).join(', ')})`,
-                                    lineWidth: 0,
-                                },
-                            },
+                    <Button
+                        size="small"
+                        type="primary"
+                        style={{
+                            color: theme.text,
+                            backgroundColor: theme.backgroundColor,
                         }}
-                    >
-                        <Button type="primary" onClick={() => handleOKClick()}>OK</Button>
-                        <Button type="primary" onClick={() => handleCancelClick()}>CANCEL</Button>
-                    </ConfigProvider>
-
+                        onClick={() => handleOKClick()}
+                    >OK</Button>
+                    <Button
+                        size="small"
+                        type="primary"
+                        style={{
+                            color: theme.text,
+                            backgroundColor: "#000033",
+                        }}
+                        onClick={() => handleCancelClick()}
+                    >CANCEL</Button>
                 </Flex>
             )}
         </Space>
