@@ -19,7 +19,8 @@ class NoteDialog(
     private val project: Project?,
     private val filePath: String,
     private val handler: CoreHandler,
-    private val messages: List<Message>
+    private val messages: List<Message>,
+    private val line: Int,
 ) : DialogWrapper(true) {
 
     private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
@@ -34,31 +35,32 @@ class NoteDialog(
         if (project == null) {
             throw IllegalStateException("project null")
         }
-
         val service = project.getService(JcefViewerWindowService::class.java)
 
-
+        // TODO : refresh after update or delete or add
         val protocolHandlers = mapOf(
-            "initialMessages" to object: MessageProtocolHandler {
+            "messages/read" to object: MessageProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
+                    val messages = handler.read(filePath)?.let { it.messages.filter { it.line == line } } ?: emptyList()
                     val resp = mapper.writeValueAsString(messages)
                     return JBCefJSQuery.Response(resp)
                 }
             },
-            "updateMessage" to object: MessageProtocolHandler {
+            "messages/update" to object: MessageProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
                     val message = mapper.readValue<Message>(mapper.writeValueAsString(data)) // temporary
                     handler.update(filePath, message.line, message.message)
                     return JBCefJSQuery.Response("OK")
                 }
             },
-            "deleteMessage" to object: MessageProtocolHandler {
+            "messages/delete" to object: MessageProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
                     val message = mapper.readValue<Message>(mapper.writeValueAsString(data))
                     handler.delete(filePath, message.line)
+                    dispose()
                     return JBCefJSQuery.Response("OK")
                 }
-            }
+            },
         )
         val window = service.newWindow(protocolHandlers)
 

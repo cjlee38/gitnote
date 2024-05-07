@@ -16,22 +16,33 @@ const Message = (props) => {
         setIsEdit(true);
     }
 
-    function handleOKClick() {
+    const handleDelete = () => {
+        requestToIde("messages/delete", message)
+            .then((data) => {
+                console.log("deleteMessage got data : " + data);
+            }).catch((error) => {
+            console.log("deleteMessage got error : " + error);
+        });
+        props.reload();
+    }
+
+    const handleOKClick = () => {
         setIsEdit(false);
         // console.log(`prevMessage = ${JSON.stringify(prevMessageValue)}`)
         // console.log(`message = ${JSON.stringify(messageValue)}`)
         console.log(`message combine result = ${JSON.stringify(Object.assign({}, message, {message: messageValue}))}`)
-        requestToIde("updateMessage", Object.assign({}, message, {message: messageValue}))
+        requestToIde("messages/update", Object.assign({}, message, {message: messageValue}))
             .then((data) => {
-                setPrevMessageValue(messageValue);
-                setMessageValue(prevMessageValue);
+                props.reload();
+                // setPrevMessageValue(messageValue);
+                // setMessageValue(prevMessageValue);
                 console.log("updateMessage got data : " + data);
             }).catch((error) => {
             console.log("updateMessage got error : " + error);
         });
     }
 
-    function handleCancelClick() {
+    const handleCancelClick = () => {
         setIsEdit(false);
         setMessageValue(prevMessageValue);
     }

@@ -5,14 +5,16 @@ import {useEffect, useState} from "react";
 const Note = (props) => {
     const [messages, setMessages] = useState([]);
 
-    useEffect(() => {
-        requestToIde("initialMessages", {})
-            .then((data) => {
-                console.log("initialMessages got data : " + data);
-                handleMessage(data);
-            }).catch((error) => {
+    const readMessages = () => requestToIde("messages/read", {})
+        .then((data) => {
+            console.log("initialMessages got data : " + data);
+            handleMessage(data);
+        }).catch((error) => {
             console.log("initialMessages got error : " + error);
         });
+
+    useEffect(() => {
+        readMessages();
     }, []);
 
     const handleMessage = (data) => {
@@ -24,7 +26,13 @@ const Note = (props) => {
     return (
         <div>
             {
-                messages.map((message) => (<Message message={message} theme={props.theme}></Message>))
+                messages.map((message) => (
+                    <Message
+                        message={message}
+                        theme={props.theme}
+                        reload={readMessages}
+                    />
+                ))
             }
         </div>
     );
