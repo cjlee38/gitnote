@@ -29,8 +29,7 @@ class NoteDocumentListener(
             this.note = note
             refreshGutter()
         }
-        val list = this.note?.let { it.messages.map { it.line }.distinct() } ?: emptyList()
-        setupHoverIcon(list) { this.refreshGutter() }
+        setupHoverIcon()
     }
 
     // TODO : how to invoke in bulk mode ?
@@ -67,10 +66,7 @@ class NoteDocumentListener(
         }
     }
 
-    private fun setupHoverIcon(
-        already: List<Int>,
-        onDispose: () -> Unit
-    ) {
+    private fun setupHoverIcon() {
         editor.addEditorMouseMotionListener(object : EditorMouseMotionListener {
             var prevLine = -1
             var currentHighlighter: RangeHighlighter? = null
@@ -78,9 +74,7 @@ class NoteDocumentListener(
             override fun mouseMoved(e: EditorMouseEvent) {
                 val gutterComponent = editor.gutter as EditorGutterComponentEx
                 val gutterBounds = gutterComponent.bounds
-
                 val mouseEvent = e.mouseEvent
-                val mouseX = mouseEvent.x
 
                 if (currentHighlighter != null && prevLine != -1) {
                     markupModelCache.removeIcon(prevLine)
@@ -88,12 +82,12 @@ class NoteDocumentListener(
                 }
 
                 // Check if mouse is over the gutter area
-                if (mouseX > gutterBounds.width) {
+                if (mouseEvent.x > gutterBounds.width) {
                     return
                 }
 
                 val line = editor.xyToLogicalPosition(mouseEvent.point).line
-                if ((line + 1) in already) {
+                if (markupModelCache.contains(line)) {
                     return
                 }
 
@@ -120,7 +114,7 @@ class NoteDocumentListener(
         private val highlighters = mutableMapOf<Int, RangeHighlighter>()
 
         fun addIcon(line: Int, gutterIconRenderer: GutterIconRenderer?): RangeHighlighter? {
-            if (highlighters.containsKey(line)) {
+            if (contains(line)) {
                 return null
             }
             // TODO : check layer effects
@@ -139,6 +133,10 @@ class NoteDocumentListener(
             val highlighter = highlighters[line] ?: return
             markupModel.removeHighlighter(highlighter)
             highlighters.remove(line)
+        }
+
+        fun contains(line: Int): Boolean {
+            return highlighters.containsKey(line)
         }
     }
 }

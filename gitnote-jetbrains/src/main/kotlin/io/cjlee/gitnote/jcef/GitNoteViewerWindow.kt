@@ -25,6 +25,7 @@ class GitNoteViewerWindow(private val project: Project, private val protocolHand
         registerAppSchemeHandler()
         registerProtocolHandlers(this)
         jbCefClient.setProperty(JBCefClient.Properties.JS_QUERY_POOL_SIZE, 200)
+        this.setProperty(JBCefBrowserBase.Properties.NO_CONTEXT_MENU, true)
 
         // TODO : Don't use Project as disposable in plugin code(Choosing a Disposable Parent)
         Disposer.register(project, this)

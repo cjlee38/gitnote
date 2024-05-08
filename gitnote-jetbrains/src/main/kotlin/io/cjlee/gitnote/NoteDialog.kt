@@ -3,8 +3,6 @@ package io.cjlee.gitnote
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.intellij.openapi.fileEditor.FileEditor
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.jcef.JBCefJSQuery
@@ -16,6 +14,7 @@ import java.awt.GridLayout
 import javax.swing.Action
 import javax.swing.JComponent
 import javax.swing.JPanel
+
 
 class NoteDialog(
     private val project: Project?,
@@ -29,7 +28,7 @@ class NoteDialog(
 
     init {
         title = "Gitnote"
-        setSize(800, 600)
+        setSize(500, 200)
         init()
     }
 
@@ -83,6 +82,12 @@ class NoteDialog(
     }
 
     override fun createActions(): Array<Action> {
+        // hide OK/CANCEL button
         return emptyArray()
+    }
+
+    // for dialog persistence (particularly for resizing)
+    override fun getDimensionServiceKey(): String {
+        return "NoteDialogServiceKey"
     }
 }

@@ -20,7 +20,6 @@ class NoteEditorFactoryListener : EditorFactoryListener {
         val handler = CoreHandler(ProcessCoreConnector(basePath))
         val documentListener = NoteDocumentListener(editor, handler, file)
         registered.add(documentListener)
-        println("document listener added")
 
         editor.document.addDocumentListener(documentListener.also { registered.add(it) })
     }
