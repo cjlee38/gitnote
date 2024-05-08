@@ -86,15 +86,15 @@ class NoteDocumentListener(
                     return
                 }
 
-                val line = editor.xyToLogicalPosition(mouseEvent.point).line
+                val line = editor.xyToLogicalPosition(mouseEvent.point).line + 1
                 if (markupModelCache.contains(line)) {
                     return
                 }
 
                 try {
-                    prevLine = line
+                    prevLine = line - 1
                     currentHighlighter =
-                        markupModelCache.addIcon(line, AddNoteGutterIconRenderer(file.path, handler, line, onDispose))
+                        markupModelCache.addIcon(line - 1, AddNoteGutterIconRenderer(file.path, handler, line, onDispose))
                 } catch (ignore: Exception) {
                 }
             }
@@ -117,7 +117,7 @@ class NoteDocumentListener(
             if (contains(line)) {
                 return null
             }
-            // TODO : check layer effects
+            // TODO : What happens if I change layer ?
             val highlighter = markupModel.addLineHighlighter(line, 0, null)
             highlighter.gutterIconRenderer = gutterIconRenderer
             highlighters[line] = highlighter
