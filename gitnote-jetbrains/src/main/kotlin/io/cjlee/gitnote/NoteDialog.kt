@@ -8,6 +8,7 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.jcef.JBCefJSQuery
 import io.cjlee.gitnote.core.CoreHandler
 import io.cjlee.gitnote.core.Message
+import io.cjlee.gitnote.jcef.GitNoteViewerWindow
 import io.cjlee.gitnote.jcef.JcefViewerWindowService
 import io.cjlee.gitnote.jcef.protocol.MessageProtocolHandler
 import java.awt.GridLayout
@@ -25,6 +26,7 @@ class NoteDialog(
 ) : DialogWrapper(true) {
 
     private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
+    private lateinit var window: GitNoteViewerWindow
 
     init {
         title = "Gitnote"
@@ -68,7 +70,7 @@ class NoteDialog(
                 }
             },
         )
-        val window = service.newWindow(protocolHandlers)
+        this.window = service.newWindow(protocolHandlers)
 
         return JPanel().apply {
             layout = GridLayout(0, 1)
@@ -78,6 +80,7 @@ class NoteDialog(
 
     override fun dispose() {
         onDispose()
+        this.window.dispose()
         super.dispose()
     }
 
