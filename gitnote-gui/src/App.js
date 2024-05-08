@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from "react";
 import Note from "./components/Note";
 import {requestToIde} from "./protocol/Protocol";
-import {ConfigProvider, Space} from "antd";
+import {Space} from "antd";
 
 function App() {
     const [theme, setTheme] = useState({
@@ -36,12 +36,13 @@ function App() {
     };
 
     return (
-        <ConfigProvider>
-            <Space direction="vertical">
-                <Note theme={theme}/>
-            </Space>
-        </ConfigProvider>
-
+        <Space
+            direction="vertical"
+            align="center"
+            style={{width: '100%', justifyContent: 'center'}}
+        >
+            <Note theme={theme}/>
+        </Space>
     );
 }
 
