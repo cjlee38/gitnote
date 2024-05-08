@@ -11,7 +11,7 @@ class CoreHandler(private val connector: CoreConnector) {
         .registerModule(JavaTimeModule())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
-    private val context = Context()
+    private val cache = NoteCache()
 
     fun add(filePath: String, line: Int, message: String) {
         connector.add(filePath, line, message)
@@ -33,7 +33,16 @@ class CoreHandler(private val connector: CoreConnector) {
         connector.delete(filePath, line)
     }
 
-    class Context {
+    fun readMessages(filePath: String, line: Int): List<Message> {
+        val note = read(filePath) ?: return emptyList()
+        return note.messages.filter { it.line == line }
+    }
+
+    private fun Response.onSuccess(action: Function1<*, *>) {
+        TODO("Not yet implemented")
+    }
+
+    class NoteCache {
         private val notes = mutableMapOf<String, Note>()
 
         fun get(filePath: String): Note? {

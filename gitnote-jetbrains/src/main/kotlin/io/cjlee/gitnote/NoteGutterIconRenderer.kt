@@ -17,7 +17,7 @@ open class NoteGutterIconRenderer(
 
     override fun getIcon(): Icon = ICON
 
-    override fun getTooltipText(): String = handler.read(filePath)?.messages?.find { it.line == line }?.message ?: ""
+    override fun getTooltipText(): String = handler.readMessages(filePath, line).last().message
 
     override fun equals(other: Any?): Boolean = other is GutterIconRenderer && other.icon == this.icon
 

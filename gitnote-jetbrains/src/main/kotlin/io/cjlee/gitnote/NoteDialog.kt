@@ -1,6 +1,7 @@
 package io.cjlee.gitnote
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.convertValue
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.intellij.openapi.project.Project
@@ -43,28 +44,28 @@ class NoteDialog(
         val protocolHandlers = mapOf(
             "messages/read" to object: MessageProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
-                    val messages = handler.read(filePath)?.let { it.messages.filter { it.line == line } } ?: emptyList()
+                    val messages = handler.readMessages(filePath, line)
                     val resp = mapper.writeValueAsString(messages)
                     return JBCefJSQuery.Response(resp)
                 }
             },
             "messages/update" to object: MessageProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
-                    val message = mapper.readValue<Message>(mapper.writeValueAsString(data)) // temporary
+                    val message =  mapper.convertValue<Message>(data!!)
                     handler.update(filePath, message.line, message.message)
                     return JBCefJSQuery.Response("")
                 }
             },
             "messages/delete" to object: MessageProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
-                    val message = mapper.readValue<Message>(mapper.writeValueAsString(data))
+                    val message =  mapper.convertValue<Message>(data!!)
                     handler.delete(filePath, message.line)
                     return JBCefJSQuery.Response("")
                 }
             },
             "messages/create" to object: MessageProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
-                    val message = mapper.readValue<Message>(mapper.writeValueAsString(data))
+                    val message =  mapper.convertValue<Message>(data!!)
                     handler.add(filePath, message.line, message.message)
                     return JBCefJSQuery.Response("")
                 }

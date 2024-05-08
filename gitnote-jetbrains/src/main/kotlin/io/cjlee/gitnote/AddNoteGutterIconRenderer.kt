@@ -19,6 +19,8 @@ class AddNoteGutterIconRenderer(
         return transparent
     }
 
+    override fun getTooltipText(): String = "Click to add new note"
+
     companion object {
         private val transparent = makeIconTransparent(ICON, 0.5f)
             .let { IconUtil.scale(it, null, (13.0 / it.iconWidth).toFloat())}
