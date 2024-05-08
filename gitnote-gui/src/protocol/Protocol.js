@@ -8,7 +8,11 @@ export async function requestToIde(messageType, data) {
             if (event.data.messageId === messageId) {
                 console.log("requestToIde got data : " + messageId + "..." + event.data.data);
                 window.removeEventListener("message", handler);
-                resolve(JSON.parse(event.data.data.replace(/\\/g,'\\')));
+                const data = event.data.data;
+                if (data) {
+                    resolve(JSON.parse(data.replace(/\\/g,'\\')));
+                }
+
             }
         };
         window.addEventListener("message", handler);

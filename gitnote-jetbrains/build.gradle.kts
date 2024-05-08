@@ -29,6 +29,8 @@ intellij {
     plugins.set(listOf(/* Plugin Dependencies */))
 }
 
+val buildFrontend = false
+
 tasks {
     // Set the JVM compatibility versions
     withType<JavaCompile> {
@@ -45,12 +47,13 @@ tasks {
     }
 
     runIde {
-//        dependsOn("copyGui")
         autoReloadPlugins = true
     }
 
     buildPlugin {
-        dependsOn("copyGui")
+        if (buildFrontend) {
+            dependsOn("buildGui")
+        }
     }
 
     signPlugin {
@@ -78,7 +81,9 @@ tasks {
     }
 
     processResources {
-        dependsOn(named("copyGui"))
+        if (buildFrontend) {
+            dependsOn(named("copyGui"))
+        }
     }
 }
 

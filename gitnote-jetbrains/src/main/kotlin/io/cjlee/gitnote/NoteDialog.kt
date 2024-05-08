@@ -3,6 +3,8 @@ package io.cjlee.gitnote
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.intellij.openapi.fileEditor.FileEditor
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.jcef.JBCefJSQuery
@@ -19,8 +21,8 @@ class NoteDialog(
     private val project: Project?,
     private val filePath: String,
     private val handler: CoreHandler,
-    private val messages: List<Message>,
     private val line: Int,
+    private val onDispose: () -> Unit
 ) : DialogWrapper(true) {
 
     private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
@@ -37,7 +39,6 @@ class NoteDialog(
         }
         val service = project.getService(JcefViewerWindowService::class.java)
 
-        // TODO : refresh after update or delete or add
         val protocolHandlers = mapOf(
             "messages/read" to object: MessageProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
@@ -50,15 +51,21 @@ class NoteDialog(
                 override fun handle(data: Any?): JBCefJSQuery.Response {
                     val message = mapper.readValue<Message>(mapper.writeValueAsString(data)) // temporary
                     handler.update(filePath, message.line, message.message)
-                    return JBCefJSQuery.Response("OK")
+                    return JBCefJSQuery.Response("")
                 }
             },
             "messages/delete" to object: MessageProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
                     val message = mapper.readValue<Message>(mapper.writeValueAsString(data))
                     handler.delete(filePath, message.line)
-                    dispose()
-                    return JBCefJSQuery.Response("OK")
+                    return JBCefJSQuery.Response("")
+                }
+            },
+            "messages/create" to object: MessageProtocolHandler {
+                override fun handle(data: Any?): JBCefJSQuery.Response {
+                    val message = mapper.readValue<Message>(mapper.writeValueAsString(data))
+                    handler.add(filePath, message.line, message.message)
+                    return JBCefJSQuery.Response("")
                 }
             },
         )
@@ -68,6 +75,11 @@ class NoteDialog(
             layout = GridLayout(0, 1)
             add(window.content)
         }
+    }
+
+    override fun dispose() {
+        onDispose()
+        super.dispose()
     }
 
     override fun createActions(): Array<Action> {

@@ -1,6 +1,7 @@
 import Message from "./Message";
 import {requestToIde} from "../protocol/Protocol";
 import {useEffect, useState} from "react";
+import {Button} from "antd";
 
 const Note = (props) => {
     const [messages, setMessages] = useState([]);
@@ -19,21 +20,36 @@ const Note = (props) => {
 
     const handleMessage = (data) => {
         console.log(`handleMessage : ${data}`);
+        if (!data.length) {
+            console.log("message empty");
+        }
         setMessages(data);
         console.log(`the messages : ${messages}`)
     }
 
+    const handleAdd = () => {
+        requestToIde("messages/create", {message: ""})
+            .then((data) => {
+                console.log("addMessage got data : " + data);
+                readMessages();
+            }).catch((error) => {
+            console.log("addMessage got error : " + error);
+        });
+    }
+
     return (
         <div>
-            {
-                messages.map((message) => (
-                    <Message
-                        message={message}
-                        theme={props.theme}
-                        reload={readMessages}
-                    />
-                ))
-            }
+            {messages && messages.map((message) => (
+                <Message
+                    message={message}
+                    theme={props.theme}
+                    reload={readMessages}
+                />
+            ))},
+            {!messages &&
+                <Button
+                    onClick={() => handleAdd()}
+                >Add a new note</Button>}
         </div>
     );
 }

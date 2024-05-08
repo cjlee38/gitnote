@@ -3,23 +3,34 @@ package io.cjlee.gitnote
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.BulkAwareDocumentListener
 import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.EditorMouseEvent
+import com.intellij.openapi.editor.event.EditorMouseMotionListener
+import com.intellij.openapi.editor.ex.EditorGutterComponentEx
+import com.intellij.openapi.editor.markup.GutterIconRenderer
+import com.intellij.openapi.editor.markup.MarkupModel
+import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.vfs.VirtualFile
 import io.cjlee.gitnote.core.CoreHandler
 import io.cjlee.gitnote.core.Note
+
 
 class NoteDocumentListener(
     private val editor: Editor,
     private val handler: CoreHandler,
     val file: VirtualFile
 ) : BulkAwareDocumentListener {
-    private lateinit var note: Note
+    private var note: Note? = null
+    private val markupModelCache = MarkupModelCache(editor.markupModel)
+    private val onDispose = { this.refreshGutter() }
 
     init {
         val note = handler.read(file.path)
         if (note != null) {
             this.note = note
-            refreshGutter(editor)
+            refreshGutter()
         }
+        val list = this.note?.let { it.messages.map { it.line }.distinct() } ?: emptyList()
+        setupHoverIcon(list) { this.refreshGutter() }
     }
 
     // TODO : how to invoke in bulk mode ?
@@ -31,28 +42,70 @@ class NoteDocumentListener(
 //            return documentChangedNonBulk(event)
         }
 
-        refreshGutter(editor)
+        refreshGutter()
     }
 
     override fun documentChangedNonBulk(event: DocumentEvent) {
         println("======documentChangedNonBulk")
 
-        refreshGutter(editor)
+        refreshGutter()
     }
 
-    fun refreshGutter(editor: Editor) {
+    private fun refreshGutter() {
         println("======refreshGutter")
+        markupModelCache.removeAllIcons()
+        addMessageIcons(onDispose)
+    }
 
-        val markupModel = editor.markupModel
-        // Clear existing gutter icons and highlights
-        editor.markupModel.removeAllHighlighters()
+    private fun addMessageIcons(onDispose: () -> Unit) {
+        note?.let { note ->
+            note.messages
+                .groupBy { it.line }
+                .forEach { (line, _) ->
+                    markupModelCache.addIcon(line - 1, NoteGutterIconRenderer(file.path, handler, line, onDispose))
+                }
+        }
+    }
 
-        note.messages.groupBy { it.line }
-            .forEach { (line, messages) ->
-                markupModel.addLineHighlighter(null, line - 1, 0).apply {
-                    gutterIconRenderer = NoteIconGutterIconRenderer(file.path, messages, handler)
+    private fun setupHoverIcon(
+        already: List<Int>,
+        onDispose: () -> Unit
+    ) {
+        editor.addEditorMouseMotionListener(object : EditorMouseMotionListener {
+            var prevLine = -1
+            var currentHighlighter: RangeHighlighter? = null
+
+            override fun mouseMoved(e: EditorMouseEvent) {
+                val gutterComponent = editor.gutter as EditorGutterComponentEx
+                val gutterBounds = gutterComponent.bounds
+
+                val mouseEvent = e.mouseEvent
+                val mouseX = mouseEvent.x
+
+                if (currentHighlighter != null && prevLine != -1) {
+                    markupModelCache.removeIcon(prevLine)
+                    currentHighlighter = null
+                }
+
+                // Check if mouse is over the gutter area
+                if (mouseX > gutterBounds.width) {
+                    return
+                }
+
+                val line = editor.xyToLogicalPosition(mouseEvent.point).line
+                if ((line + 1) in already) {
+                    return
+                }
+
+                try {
+                    prevLine = line
+                    currentHighlighter =
+                        markupModelCache.addIcon(line, AddNoteGutterIconRenderer(file.path, handler, line, onDispose))
+                } catch (ignore: Exception) {
                 }
             }
+
+        })
     }
 
     override fun equals(other: Any?): Boolean {
@@ -61,5 +114,31 @@ class NoteDocumentListener(
 
     override fun hashCode(): Int {
         return 31 * file.path.hashCode()
+    }
+
+    class MarkupModelCache(private val markupModel: MarkupModel) {
+        private val highlighters = mutableMapOf<Int, RangeHighlighter>()
+
+        fun addIcon(line: Int, gutterIconRenderer: GutterIconRenderer?): RangeHighlighter? {
+            if (highlighters.containsKey(line)) {
+                return null
+            }
+            // TODO : check layer effects
+            val highlighter = markupModel.addLineHighlighter(line, 0, null)
+            highlighter.gutterIconRenderer = gutterIconRenderer
+            highlighters[line] = highlighter
+            return highlighter
+        }
+
+        fun removeAllIcons() {
+            highlighters.values.forEach { markupModel.removeHighlighter(it) }
+            highlighters.clear()
+        }
+
+        fun removeIcon(line: Int) {
+            val highlighter = highlighters[line] ?: return
+            markupModel.removeHighlighter(highlighter)
+            highlighters.remove(line)
+        }
     }
 }

@@ -11,6 +11,8 @@ class CoreHandler(private val connector: CoreConnector) {
         .registerModule(JavaTimeModule())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
+    private val context = Context()
+
     fun add(filePath: String, line: Int, message: String) {
         connector.add(filePath, line, message)
     }
@@ -29,5 +31,17 @@ class CoreHandler(private val connector: CoreConnector) {
 
     fun delete(filePath: String, line: Int) {
         connector.delete(filePath, line)
+    }
+
+    class Context {
+        private val notes = mutableMapOf<String, Note>()
+
+        fun get(filePath: String): Note? {
+            return notes[filePath]
+        }
+
+        fun put(filePath: String, note: Note) {
+            notes[filePath] = note
+        }
     }
 }

@@ -1,4 +1,4 @@
-import {Button, Flex, Space, Tooltip} from "antd";
+import {Button, Flex, Popconfirm, Space, Tooltip} from "antd";
 import {DeleteOutlined, EditOutlined} from "@ant-design/icons";
 import TextareaAutosize from 'react-textarea-autosize';
 import {useState} from "react";
@@ -17,6 +17,7 @@ const Message = (props) => {
     }
 
     const handleDelete = () => {
+
         requestToIde("messages/delete", message)
             .then((data) => {
                 console.log("deleteMessage got data : " + data);
@@ -88,14 +89,22 @@ const Message = (props) => {
                                 onClick={() => handleEdit()}
                             />
                         </Tooltip>
-                        <Tooltip title="Delete">
-                            <Button
-                                size="small"
-                                shape="circle"
-                                icon={<DeleteOutlined/>}
-                                onClick={() => alert('Delete')}
-                            />
-                        </Tooltip>
+                        <Popconfirm
+                            title="Delete the note"
+                            description="Are you sure to delete this note?"
+                            onConfirm={() => handleDelete()}
+                            okText="Yes"
+                            cancelText="No"
+                        >
+                            <Tooltip title="Delete">
+                                <Button
+                                    size="small"
+                                    shape="circle"
+                                    icon={<DeleteOutlined/>}
+                                />
+                            </Tooltip>
+                        </Popconfirm>
+
                     </div>
                 )}
             </Space>
