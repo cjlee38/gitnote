@@ -99,11 +99,14 @@ const Message = (props) => {
                             />
                         </Tooltip>
                         <Popconfirm
-                            title="Delete the note"
-                            description="Are you sure to delete this note?"
+                            overlayInnerStyle={{backgroundColor: theme.editorBackground}}
+                            placement="left"
+                            title={<span style={{ color: theme.text }}>Delete the note</span>}
+                            description={<span style={{ color: theme.text }}>Are you sure to delete this note?</span>}
                             onConfirm={() => handleDelete()}
-                            okText="Yes"
-                            cancelText="No"
+                            okText={<span style={{ color: theme.text }}>Yes</span>}
+                            cancelButtonProps={{style: {backgroundColor: theme.background}}}
+                            cancelText={<span style={{ color: theme.text }}>No</span>}
                         >
                             <Tooltip title="Delete">
                                 <Button
@@ -118,7 +121,7 @@ const Message = (props) => {
                 )}
             </Space>
             {isEdit && (
-                <Flex style={{float: "right", gap: 'large'}}>
+                <Flex gap="small" align="flex-end" style={{float: "right"}}>
                     <Button
                         size="small"
                         type="primary"
@@ -133,7 +136,8 @@ const Message = (props) => {
                         type="primary"
                         style={{
                             color: theme.text,
-                            backgroundColor: "#000033",
+                            backgroundColor: theme.background,
+                            borderColor: theme.text
                         }}
                         onClick={() => handleCancelClick()}
                     >CANCEL</Button>

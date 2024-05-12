@@ -27,6 +27,10 @@ open class NoteGutterIconRenderer(
         return true
     }
 
+    override fun getAlignment(): Alignment {
+        return Alignment.RIGHT
+    }
+
     override fun getClickAction(): AnAction {
         return object : AnAction() {
             override fun actionPerformed(e: AnActionEvent) {

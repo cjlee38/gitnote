@@ -119,8 +119,7 @@ class NoteDocumentListener(
             if (contains(line)) {
                 return null
             }
-            // TODO : What happens if I change layer ?
-            val highlighter = markupModel.addLineHighlighter(line, 0, null)
+            val highlighter = markupModel.addLineHighlighter(null, line, 0)
             highlighter.gutterIconRenderer = gutterIconRenderer
             highlighters[line] = highlighter
             return highlighter

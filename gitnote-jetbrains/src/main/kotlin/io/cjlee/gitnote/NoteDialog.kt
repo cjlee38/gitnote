@@ -5,15 +5,12 @@ import com.fasterxml.jackson.module.kotlin.convertValue
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.ui.jcef.JBCefJSQuery
 import io.cjlee.gitnote.core.CoreHandler
-import io.cjlee.gitnote.core.Message
 import io.cjlee.gitnote.jcef.GitNoteViewerWindow
 import io.cjlee.gitnote.jcef.JcefViewerWindowService
 import io.cjlee.gitnote.jcef.protocol.MessageProtocol
 import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
 import java.awt.BorderLayout
-import java.awt.GridLayout
 import javax.swing.Action
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -46,15 +43,17 @@ class NoteDialog(
         val protocolHandlers = mapOf(
             "messages/read" to object: ProtocolHandler {
                 override fun handle(data: Any?): Any {
-                    val messages = handler.readMessages(filePath, line)
-                        .map { MessageProtocol(it.line, it.message)}
-                        .ifEmpty { listOf(MessageProtocol(line, ""))}
-                    return messages
+                    return handler.readMessages(filePath, line)
+                        .map { MessageProtocol(it.line, it.message) }
+                        .ifEmpty { listOf(MessageProtocol(line, "")) }
                 }
             },
             "messages/upsert" to object: ProtocolHandler {
                 override fun handle(data: Any?): Any? {
                     val message =  mapper.convertValue<MessageProtocol>(data!!)
+                    if (message.message.isEmpty()) {
+                        handler.delete(filePath, message.line)
+                    }
                     handler.add(filePath, message.line, message.message)
                     handler.update(filePath, message.line, message.message)
                     return null
@@ -64,6 +63,7 @@ class NoteDialog(
                 override fun handle(data: Any?): Any? {
                     val message =  mapper.convertValue<MessageProtocol>(data!!)
                     handler.delete(filePath, message.line)
+                    dispose()
                     return null
                 }
             },
@@ -72,8 +72,6 @@ class NoteDialog(
 
         return JPanel().apply {
             layout = BorderLayout()
-
-//            layout = GridLayout(0, 1)
             pack()
             add(window.content, BorderLayout.CENTER)
         }
@@ -91,7 +89,7 @@ class NoteDialog(
     }
 
     // for dialog persistence (particularly for resizing)
-//    override fun getDimensionServiceKey(): String {
-//        return "NoteDialogServiceKey"
-//    }
+    override fun getDimensionServiceKey(): String {
+        return "NoteDialogServiceKey"
+    }
 }
