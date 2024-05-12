@@ -1,5 +1,6 @@
 package io.cjlee.gitnote
 
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.BulkAwareDocumentListener
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -18,7 +19,7 @@ class NoteDocumentListener(
     private val editor: Editor,
     private val handler: CoreHandler,
     val file: VirtualFile
-) : BulkAwareDocumentListener {
+) : BulkAwareDocumentListener.Simple {
     private var note: Note? = null
     private val markupModelCache = MarkupModelCache(editor.markupModel)
     private val onDispose = { this.refreshGutter() }
@@ -28,23 +29,28 @@ class NoteDocumentListener(
         setupHoverIcon()
     }
 
+    override fun afterDocumentChange(document: Document) {
+        refreshGutter()
+    }
+
     // TODO : how to invoke in bulk mode ?
-    override fun documentChanged(event: DocumentEvent) {
-        println("======documentChanged")
-
-        if (!event.document.isInBulkUpdate) {
-            return
-//            return documentChangedNonBulk(event)
-        }
-
-        refreshGutter()
-    }
-
-    override fun documentChangedNonBulk(event: DocumentEvent) {
-        println("======documentChangedNonBulk")
-
-        refreshGutter()
-    }
+//    override fun documentChanged(event: DocumentEvent) {
+//        println("======documentChanged")
+//
+//        if (!event.document.isInBulkUpdate) {
+//            println("non-bulk damnit!")
+//            return
+////            return documentChangedNonBulk(event)
+//        }
+//
+//        refreshGutter()
+//    }
+//
+//    override fun documentChangedNonBulk(event: DocumentEvent) {
+//        println("======documentChangedNonBulk")
+//
+//        refreshGutter()
+//    }
 
     private fun refreshGutter() {
         handler.read(file.path)?.let {
@@ -59,9 +65,9 @@ class NoteDocumentListener(
         note?.let { note ->
             note.messages
                 .groupBy { it.line }
-                .forEach { (line, _) ->
+                .forEach { (line, messages) ->
                     try {
-                        markupModelCache.addIcon(line - 1, NoteGutterIconRenderer(file.path, handler, line, onDispose))
+                        markupModelCache.addIcon(line - 1, NoteGutterIconRenderer(file.path, handler, messages, onDispose))
                     } catch (ignore: Exception) {
                     }
                 }

@@ -35,6 +35,9 @@ fn validate_file_staged(file_path: &PathBuf) -> anyhow::Result<()> {
             Would you stage the file before adding comment ?(y/n)", &file_path),
         )? {
             stage(&file_path)?;
+            return Ok(());
+        } else {
+            return Err(anyhow!("file is not staged."));
         }
     }
     return Ok(());

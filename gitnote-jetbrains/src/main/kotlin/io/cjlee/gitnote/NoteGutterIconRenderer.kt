@@ -2,22 +2,24 @@ package io.cjlee.gitnote
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.editor.markup.GutterDraggableObject
 import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.util.IconLoader
 import com.intellij.util.IconUtil
 import io.cjlee.gitnote.core.CoreHandler
+import io.cjlee.gitnote.core.Message
 import javax.swing.Icon
 
 open class NoteGutterIconRenderer(
     private val filePath: String,
     private val handler: CoreHandler,
-    private val line: Int,
+    private val messages: List<Message>,
     private val onDispose: () -> Unit
 ) : GutterIconRenderer() {
 
     override fun getIcon(): Icon = ICON
 
-    override fun getTooltipText(): String = handler.readMessages(filePath, line).last().message
+    override fun getTooltipText(): String = messages.last().message
 
     override fun equals(other: Any?): Boolean = other is GutterIconRenderer && other.icon == this.icon
 
@@ -38,6 +40,14 @@ open class NoteGutterIconRenderer(
                 noteDialog.show()
             }
         }
+    }
+
+    open val line: Int
+        get() = messages.last().line
+
+    override fun getDraggableObject(): GutterDraggableObject? {
+        // TODO : drag & drop
+        return super.getDraggableObject()
     }
 
     companion object {

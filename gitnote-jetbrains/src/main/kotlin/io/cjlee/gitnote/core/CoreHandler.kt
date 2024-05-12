@@ -5,7 +5,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 
-// TODO : cache
 class CoreHandler(private val connector: CoreConnector) {
     private val mapper = jacksonObjectMapper()
         .registerModule(JavaTimeModule())
@@ -13,24 +12,8 @@ class CoreHandler(private val connector: CoreConnector) {
 
     private val cache = NoteCache()
 
-    fun add(filePath: String, line: Int, message: String) {
-        connector.add(filePath, line, message)
-    }
-
     fun read(filePath: String): Note? {
-        val response = connector.read(filePath)
-        if (response.exitCode == 0) {
-            return runCatching { mapper.readValue<Note>(response.text) }.getOrNull()
-        }
-        return null
-    }
-
-    fun update(filePath: String, line: Int, message: String) {
-        connector.update(filePath, line, message)
-    }
-
-    fun delete(filePath: String, line: Int) {
-        connector.delete(filePath, line)
+        return cache.get(filePath) ?: cache.put(filePath, read0(filePath))
     }
 
     fun readMessages(filePath: String, line: Int): List<Message> {
@@ -38,19 +21,55 @@ class CoreHandler(private val connector: CoreConnector) {
         return note.messages.filter { it.line == line }
     }
 
-    private fun Response.onSuccess(action: Function1<*, *>) {
-        TODO("Not yet implemented")
+    private fun read0(filePath: String): Note? {
+        println("real read $filePath")
+        val response = connector.read(filePath)
+        if (response.exitCode == 0) {
+            return runCatching { mapper.readValue<Note>(response.text) }.getOrNull()
+        }
+        return null
+    }
+
+    // always do read on modification.
+    fun add(filePath: String, line: Int, message: String) {
+        connector.add(filePath, line, message)
+            .onSuccess { cache.put(filePath, read0(filePath)) }
+    }
+
+    // always do read on modification.
+    fun update(filePath: String, line: Int, message: String) {
+        connector.update(filePath, line, message)
+            .onSuccess { cache.put(filePath, read0(filePath)) }
+    }
+
+    // always do read on modification.
+    fun delete(filePath: String, line: Int) {
+        connector.delete(filePath, line)
+            .onSuccess { cache.put(filePath, read0(filePath)) }
+    }
+
+    private fun Response.onSuccess(action: () -> Unit) {
+        if (exitCode == 0) {
+            println("successs")
+            action()
+        }
+        println("no-successs")
     }
 
     class NoteCache {
         private val notes = mutableMapOf<String, Note>()
 
         fun get(filePath: String): Note? {
+            println("cache read $filePath && ${notes[filePath] != null}")
             return notes[filePath]
         }
 
-        fun put(filePath: String, note: Note) {
-            notes[filePath] = note
+        fun put(filePath: String, note: Note?): Note? {
+            if (note != null) {
+                notes[filePath] = note
+                return note
+            }
+            return null
         }
     }
 }

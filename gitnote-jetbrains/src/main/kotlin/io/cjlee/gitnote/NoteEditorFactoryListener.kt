@@ -1,8 +1,10 @@
 package io.cjlee.gitnote
 
+import com.intellij.AppTopics
 import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.roots.ProjectRootManager
 import io.cjlee.gitnote.core.CoreHandler
 import io.cjlee.gitnote.core.ProcessCoreConnector
 
@@ -12,9 +14,10 @@ class NoteEditorFactoryListener : EditorFactoryListener {
     override fun editorCreated(event: EditorFactoryEvent) {
         // TODO : the basePath cannot be matched if project has nested(git submodule)
         //   => Discovering repository should depends on file path
-        val basePath = event.editor.project?.basePath ?: return
+        val project = event.editor.project ?: return
+        val basePath = project.basePath ?: return
         val file = FileDocumentManager.getInstance().getFile(event.editor.document) ?: return
-        if (!file.isValid) return
+        if (!file.isValid || !ProjectRootManager.getInstance(project).fileIndex.isInContent(file)) return
 
         val editor = event.editor
         val handler = CoreHandler(ProcessCoreConnector(basePath))

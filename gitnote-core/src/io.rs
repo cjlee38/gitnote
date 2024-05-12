@@ -38,12 +38,12 @@ pub fn read_all_note(file_path: &PathBuf) -> anyhow::Result<Note> {
 
 // TODO : demo-version implementation, so may lead to bad performance.
 pub fn read_valid_note(file_path: &PathBuf) -> anyhow::Result<Note> {
-    let all_note = read_all_note(file_path)?;
     let git_blobs = find_all_git_blobs(file_path)?;
     if (&git_blobs).is_empty() {
         return Err(anyhow!(format!("No blobs found for {:?}", file_path)));
     }
 
+    let all_note = read_all_note(file_path)?;
     let valid_messages: Vec<Message> = all_note.messages.into_iter()
         .filter_map(|message| {
             is_valid_message(&git_blobs, message)
@@ -58,7 +58,6 @@ fn is_valid_message(git_blobs: &Vec<GitBlob>, message: Message) -> Option<Messag
     let slice = &git_blobs[pos..];
     let mut diff_options = DiffOptions::new();
     diff_options.force_text(true);
-
     for window in slice.windows(2) {
         let old_blob = repo.find_blob(Oid::from_str(&&window[0].id).ok()?).ok()?;
         let new_blob = repo.find_blob(Oid::from_str(&&window[1].id).ok()?).ok()?;

@@ -11,9 +11,9 @@ import javax.swing.ImageIcon
 class AddNoteGutterIconRenderer(
     filePath: String,
     handler: CoreHandler,
-    line: Int,
+    override val line: Int,
     onDispose: () -> Unit
-): NoteGutterIconRenderer(filePath, handler, line, onDispose) {
+): NoteGutterIconRenderer(filePath, handler, emptyList(), onDispose) {
 
     override fun getIcon(): Icon {
         return transparent
