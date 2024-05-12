@@ -2,11 +2,13 @@ use std::path::PathBuf;
 
 use anyhow::{anyhow, Context};
 use colored::Colorize;
+use unicode_width::UnicodeWidthStr;
 
 use crate::io::{read_all_note, read_or_create_note, read_valid_note, write_note};
 use crate::libgit::{find_git_blob, find_root_path, get_diff, is_file_staged, stage};
 use crate::note::Message;
 use crate::stdio::{inquire_boolean, write_out};
+
 
 pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
@@ -62,11 +64,31 @@ pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
         let note_str = serde_json::to_string_pretty(&note)?;
         write_out(&note_str);
     } else {
-        // TODO : prettify output
-        note.messages.iter().for_each(|message| {
-            write_out(&format!("{}", message.line));
-            write_out(&format!("{}", message.message.red()))
-        });
+        let mut messages = note.messages;
+        messages.sort_by(|a, b| a.line.cmp(&b.line));
+        messages.iter()
+            .for_each(|message| {
+                let len = message.snippet.width();
+                let message_lines = message.message.split("\n")
+                    .map(String::from)
+                    .collect::<Vec<String>>();
+
+                for (i, line) in message_lines.iter().enumerate() {
+                    if i == 0 {
+                        write_out(&format!("{} {} {} ",
+                                           message.line.to_string().yellow(),
+                                           message.snippet,
+                                           line.red())
+                    );
+                    } else {
+                        write_out(&format!("{:width$} {}",
+                                           "",
+                                           line.red(),
+                                           width = len + 2)
+                    );
+                    }
+                }
+            });
     }
 
     Ok(())

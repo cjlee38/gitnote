@@ -142,7 +142,6 @@ pub fn get_diff(file_path: &PathBuf) -> anyhow::Result<String> {
 pub fn stage(file_path: &PathBuf) -> anyhow::Result<()> {
     let repo = Repository::discover(".")?;
     let mut index = repo.index()?;
-    let file_path = file_path.strip_prefix(repo.workdir().unwrap())?;
     index.add_path(file_path)?;
     index.write()?;
     Ok(())

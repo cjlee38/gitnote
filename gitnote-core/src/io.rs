@@ -46,12 +46,12 @@ pub fn read_valid_note(file_path: &PathBuf) -> anyhow::Result<Note> {
 
     let valid_messages: Vec<Message> = all_note.messages.into_iter()
         .filter_map(|message| {
-            get_valid_message(&git_blobs, message)
+            is_valid_message(&git_blobs, message)
         }).collect();
     return Ok(Note::from(&all_note.id, &all_note.reference, valid_messages));
 }
 
-fn get_valid_message(git_blobs: &Vec<GitBlob>, message: Message) -> Option<Message> {
+fn is_valid_message(git_blobs: &Vec<GitBlob>, message: Message) -> Option<Message> {
     let repo = Repository::discover(".").ok()?;
     let pos = git_blobs.iter().position(|blob| blob.id == message.id)?;
     let mut diff_model = DiffModel::of(&message);
@@ -62,7 +62,6 @@ fn get_valid_message(git_blobs: &Vec<GitBlob>, message: Message) -> Option<Messa
     for window in slice.windows(2) {
         let old_blob = repo.find_blob(Oid::from_str(&&window[0].id).ok()?).ok()?;
         let new_blob = repo.find_blob(Oid::from_str(&&window[1].id).ok()?).ok()?;
-
 
         repo.diff_blobs(
             Some(&old_blob),
