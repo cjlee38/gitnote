@@ -57,39 +57,45 @@ fn resolve_path(input_path: &String) -> anyhow::Result<PathBuf> {
 
 pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
+
     let blob = find_git_blob(&file_path)?;
+
     let note = read_valid_note(&blob.file_path)?;
+    let content = &blob.content;
 
     if formatted {
         let note_str = serde_json::to_string_pretty(&note)?;
         write_out(&note_str);
-    } else {
-        let mut messages = note.messages;
-        messages.sort_by(|a, b| a.line.cmp(&b.line));
-        messages.iter()
-            .for_each(|message| {
-                let len = message.snippet.width();
-                let message_lines = message.message.split("\n")
+        return Ok(());
+    }
+    let messages = note.messages;
+    content.iter().enumerate()
+        .for_each(|(line, line_content)| {
+            let message = messages.iter().find(|m| m.line == line);
+            if let Some(found) = message {
+                let message_lines = found.message.split("\n")
                     .map(String::from)
                     .collect::<Vec<String>>();
-
+                let padding = found.snippet.width();
                 for (i, line) in message_lines.iter().enumerate() {
                     if i == 0 {
                         write_out(&format!("{} {} {} ",
-                                           message.line.to_string().yellow(),
-                                           message.snippet,
+                                           found.line.to_string().yellow(),
+                                           found.snippet,
                                            line.red())
-                    );
+                        );
                     } else {
                         write_out(&format!("{:width$} {}",
                                            "",
                                            line.red(),
-                                           width = len + 2)
-                    );
+                                           width = padding + 2)
+                        );
                     }
                 }
-            });
-    }
+            } else {
+                write_out(&format!("{} {}", line.to_string().yellow(), line_content));
+            }
+        });
 
     Ok(())
 }
