@@ -24,8 +24,8 @@ class JcefInjectionLoadHandler(
 
     private fun injectJavascriptBridge(browser: CefBrowser?, jsQuery: JBCefJSQuery) {
         // TODO : might need to handle response/error
-        val script = """window.sendMessageToIde = function(type, data, id) {
-                const msg = JSON.stringify({type, data, id});
+        val script = """window.sendMessageToIde = function(type, payload, id) {
+                const msg = JSON.stringify({type, payload, id});
                 ${jsQuery.inject("msg")}
             }""".trimIndent()
 

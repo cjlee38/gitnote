@@ -6,11 +6,10 @@ export async function requestToIde(type, data) {
     return new Promise((resolve) => {
         const handler = (event) => {
             if (event.data.id === id) {
-                console.log("requestToIde got data : " + id + "..." + event.data.data);
+                console.log("requestToIde got data : " + id + "..." + event.data.payload);
                 window.removeEventListener("message", handler);
-                const data = event.data.data;
-                const ret = data ? JSON.parse(data.replace(/\\/g,'\\')) : "";
-                resolve(ret);
+                const payload = event.data.payload;
+                resolve(payload);
             }
         };
         window.addEventListener("message", handler);
@@ -19,25 +18,25 @@ export async function requestToIde(type, data) {
     });
 }
 
-const sendToIde = (type, data, id, attempt = 0) => {
+const sendToIde = (type, payload, id, attempt = 0) => {
     try {
-        sendToIde0(type, data, id);
+        sendToIde0(type, payload, id);
     } catch (error) {
         if (attempt >= 5) {
             console.error("sendToIde failed after 5 attempts.");
             throw error;
         }
         setTimeout(
-            () => sendToIde(type, data, id, attempt + 1),
+            () => sendToIde(type, payload, id, attempt + 1),
             Math.pow(2, attempt) * 1000,
         );
     }
 };
 
-const sendToIde0 = (type, data, id) => {
+const sendToIde0 = (type, payload, id) => {
     if (window.sendMessageToIde === undefined) {
         console.log("sendMessageToIde is undefined yet.");
         throw new Error("sendMessageToIde is undefined yet.");
     }
-    window.sendMessageToIde(type, data, id);
+    window.sendMessageToIde(type, payload, id);
 }

@@ -47,8 +47,8 @@ class NoteDocumentListener(
     }
 
     private fun refreshGutter() {
-        println("======refreshGutter")
         handler.read(file.path)?.let {
+            println("======refreshGutter")
             this.note = handler.read(file.path)
             markupModelCache.removeAllIcons()
             addMessageIcons(onDispose)
@@ -60,7 +60,10 @@ class NoteDocumentListener(
             note.messages
                 .groupBy { it.line }
                 .forEach { (line, _) ->
-                    markupModelCache.addIcon(line - 1, NoteGutterIconRenderer(file.path, handler, line, onDispose))
+                    try {
+                        markupModelCache.addIcon(line - 1, NoteGutterIconRenderer(file.path, handler, line, onDispose))
+                    } catch (ignore: Exception) {
+                    }
                 }
         }
     }

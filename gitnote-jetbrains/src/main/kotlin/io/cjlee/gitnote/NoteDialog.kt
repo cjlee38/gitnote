@@ -12,6 +12,7 @@ import io.cjlee.gitnote.jcef.GitNoteViewerWindow
 import io.cjlee.gitnote.jcef.JcefViewerWindowService
 import io.cjlee.gitnote.jcef.protocol.MessageProtocol
 import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
+import java.awt.BorderLayout
 import java.awt.GridLayout
 import javax.swing.Action
 import javax.swing.JComponent
@@ -33,6 +34,7 @@ class NoteDialog(
         title = "Gitnote"
         setSize(500, 200)
         init()
+        pack()
     }
 
     override fun createCenterPanel(): JComponent {
@@ -43,35 +45,37 @@ class NoteDialog(
 
         val protocolHandlers = mapOf(
             "messages/read" to object: ProtocolHandler {
-                override fun handle(data: Any?): JBCefJSQuery.Response {
+                override fun handle(data: Any?): Any {
                     val messages = handler.readMessages(filePath, line)
                         .map { MessageProtocol(it.line, it.message)}
                         .ifEmpty { listOf(MessageProtocol(line, ""))}
-                    val resp = mapper.writeValueAsString(messages)
-                    return JBCefJSQuery.Response(resp)
+                    return messages
                 }
             },
             "messages/upsert" to object: ProtocolHandler {
-                override fun handle(data: Any?): JBCefJSQuery.Response {
+                override fun handle(data: Any?): Any? {
                     val message =  mapper.convertValue<MessageProtocol>(data!!)
                     handler.add(filePath, message.line, message.message)
                     handler.update(filePath, message.line, message.message)
-                    return JBCefJSQuery.Response("")
+                    return null
                 }
             },
             "messages/delete" to object: ProtocolHandler {
-                override fun handle(data: Any?): JBCefJSQuery.Response {
+                override fun handle(data: Any?): Any? {
                     val message =  mapper.convertValue<MessageProtocol>(data!!)
                     handler.delete(filePath, message.line)
-                    return JBCefJSQuery.Response("")
+                    return null
                 }
             },
         )
         this.window = service.newWindow(protocolHandlers)
 
         return JPanel().apply {
-            layout = GridLayout(0, 1)
-            add(window.content)
+            layout = BorderLayout()
+
+//            layout = GridLayout(0, 1)
+            pack()
+            add(window.content, BorderLayout.CENTER)
         }
     }
 
@@ -87,7 +91,7 @@ class NoteDialog(
     }
 
     // for dialog persistence (particularly for resizing)
-    override fun getDimensionServiceKey(): String {
-        return "NoteDialogServiceKey"
-    }
+//    override fun getDimensionServiceKey(): String {
+//        return "NoteDialogServiceKey"
+//    }
 }

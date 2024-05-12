@@ -3,22 +3,18 @@ package io.cjlee.gitnote.jcef.theme
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.ui.JBColor
-import com.intellij.ui.jcef.JBCefJSQuery
 import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
 
 class ThemeProtocolHandler : ProtocolHandler {
     private val mapper = jacksonObjectMapper()
 
-    override fun handle(data: Any?): JBCefJSQuery.Response {
+    override fun handle(data: Any?): Any {
         val globalScheme = EditorColorsManager.getInstance().globalScheme
         val editorBackground = globalScheme.defaultBackground
-        val defaultForeground = globalScheme.defaultForeground
-        val theme = mapOf(
+        return mapOf(
             "editorBackground" to editorBackground.rgb,
             "background" to JBColor.background().rgb,
             "text" to JBColor.foreground().rgb,
         )
-
-        return JBCefJSQuery.Response(mapper.writeValueAsString(theme))
     }
 }

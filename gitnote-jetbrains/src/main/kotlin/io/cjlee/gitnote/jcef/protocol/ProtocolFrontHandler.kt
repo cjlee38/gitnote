@@ -18,13 +18,13 @@ class ProtocolFrontHandler(
         println("received data from webview : $input")
         val protocol = mapper.readValue<Protocol>(input)
         val handler = handlers[protocol.type] ?: object : ProtocolHandler {
-            override fun handle(data: Any?): Response {
-                return Response("No handler for ${protocol.type}")
+            override fun handle(data: Any?): String {
+                return "No handler for ${protocol.type}"
             }
         }
-        val response = handler.handle(protocol.data)
+        val payload = handler.handle(protocol.payload)
         // TODO : For now, manually response to webview by executing javascript
-        sendToWebView(protocol.type, response.response(), protocol.id)
+        sendToWebView(protocol.type, payload, protocol.id)
         return Response("")
     }
 
@@ -32,13 +32,15 @@ class ProtocolFrontHandler(
         handlers[type] = handler
     }
 
-    private fun sendToWebView(type: String, data: Any?, id: String) {
-        val snippet = buildJavascriptMessageSnippet(type, data, id)
+    private fun sendToWebView(type: String, payload: Any?, id: String) {
+        val protocol = Protocol(type, id, payload)
+        val serialized = mapper.writeValueAsString(protocol)
+        val snippet = buildJavascriptMessageSnippet(serialized)
         println("response to webview : $snippet")
         webView.executeJavaScriptAsync(snippet)
     }
 
-    private fun buildJavascriptMessageSnippet(type: String, data: Any?, id: String): String {
-        return """window.postMessage({type : '$type', data : '$data', id : '$id'})"""
+    private fun buildJavascriptMessageSnippet(protocolData: String): String {
+        return """window.postMessage($protocolData)"""
     }
 }

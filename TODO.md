@@ -4,7 +4,6 @@ The following sections outline the next steps for this project, organized by pri
 ### Before Publish
 - Core
   - handle dangling messages... how can I make it faster ?
-  - git note read  <- prettify.
 - GUI and jetbrains
   - note cache for performance(might not be necessary)
   - re-use JCEF browser instance
