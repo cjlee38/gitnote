@@ -43,3 +43,4 @@ bin/
 
 ### gitnote-gui build ###
 src/main/resources/webview/
+src/main/resources/core

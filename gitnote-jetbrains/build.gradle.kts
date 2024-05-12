@@ -29,7 +29,7 @@ intellij {
     plugins.set(listOf(/* Plugin Dependencies */))
 }
 
-val buildFrontend = false
+val development = false
 
 tasks {
     // Set the JVM compatibility versions
@@ -51,7 +51,8 @@ tasks {
     }
 
     buildPlugin {
-        if (buildFrontend) {
+        if (!development) {
+            dependsOn("buildCore")
             dependsOn("buildGui")
         }
     }
@@ -64,6 +65,18 @@ tasks {
 
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
+    }
+
+    register<Exec>("buildCore") {
+        workingDir = file("../gitnote-core")
+        commandLine("cargo", "build", "--release")
+    }
+
+    register<Copy>("copyCore") {
+        dependsOn(named("buildCore"))
+        delete("src/main/resources/core/")
+        from("../gitnote-core/target/release/git-note")
+        into("src/main/resources/core/.")
     }
 
     register<NpxTask>("buildGui") {
@@ -81,13 +94,14 @@ tasks {
     }
 
     processResources {
-        if (buildFrontend) {
+        if (!development) {
+            dependsOn(named("copyCore"))
             dependsOn(named("copyGui"))
         }
     }
 }
 
-// TODO : download node and npm if not presesnt
+// TODO : download node and npm if not present
 //node {
 //    version.set("22.0.0")
 //    npmVersion.set("10.5.1")
