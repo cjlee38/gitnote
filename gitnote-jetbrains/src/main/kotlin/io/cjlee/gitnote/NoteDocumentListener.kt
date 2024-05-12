@@ -24,11 +24,7 @@ class NoteDocumentListener(
     private val onDispose = { this.refreshGutter() }
 
     init {
-        val note = handler.read(file.path)
-        if (note != null) {
-            this.note = note
-            refreshGutter()
-        }
+        refreshGutter()
         setupHoverIcon()
     }
 
@@ -52,8 +48,11 @@ class NoteDocumentListener(
 
     private fun refreshGutter() {
         println("======refreshGutter")
-        markupModelCache.removeAllIcons()
-        addMessageIcons(onDispose)
+        handler.read(file.path)?.let {
+            this.note = handler.read(file.path)
+            markupModelCache.removeAllIcons()
+            addMessageIcons(onDispose)
+        }
     }
 
     private fun addMessageIcons(onDispose: () -> Unit) {
@@ -77,7 +76,7 @@ class NoteDocumentListener(
                 val mouseEvent = e.mouseEvent
 
                 if (currentHighlighter != null && prevLine != -1) {
-                    markupModelCache.removeIcon(prevLine)
+                    markupModelCache.removeIcon(prevLine, currentHighlighter)
                     currentHighlighter = null
                 }
 
@@ -125,14 +124,16 @@ class NoteDocumentListener(
         }
 
         fun removeAllIcons() {
-            highlighters.values.forEach { markupModel.removeHighlighter(it) }
+            markupModel.removeAllHighlighters()
             highlighters.clear()
         }
 
-        fun removeIcon(line: Int) {
+        fun removeIcon(line: Int, prev: RangeHighlighter? = null) {
             val highlighter = highlighters[line] ?: return
-            markupModel.removeHighlighter(highlighter)
-            highlighters.remove(line)
+            if (prev != null && prev == highlighter) {
+                markupModel.removeHighlighter(highlighter)
+                highlighters.remove(line)
+            }
         }
 
         fun contains(line: Int): Boolean {

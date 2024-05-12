@@ -7,9 +7,9 @@ import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefClient
 import com.intellij.ui.jcef.JBCefJSQuery
 import io.cjlee.gitnote.jcef.protocol.JcefInjectionLoadHandler
-import io.cjlee.gitnote.jcef.protocol.MessageProtocolFrontHandler
-import io.cjlee.gitnote.jcef.protocol.MessageProtocolHandler
-import io.cjlee.gitnote.jcef.theme.ThemeMessageProtocolHandler
+import io.cjlee.gitnote.jcef.protocol.ProtocolFrontHandler
+import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
+import io.cjlee.gitnote.jcef.theme.ThemeProtocolHandler
 import org.cef.CefApp
 import org.cef.CefSettings
 import org.cef.browser.CefBrowser
@@ -18,7 +18,7 @@ import org.cef.handler.CefDisplayHandler
 import javax.swing.JComponent
 
 
-class GitNoteViewerWindow(private val project: Project, private val protocolHandlers: Map<String, MessageProtocolHandler>) {
+class GitNoteViewerWindow(private val project: Project, private val protocolHandlers: Map<String, ProtocolHandler>) {
     private val webView: JBCefBrowser = JBCefBrowser().apply {
 //        this.loadURL("http://gitnote/index.html")
         this.loadURL("http://localhost:3000/index.html")
@@ -36,8 +36,8 @@ class GitNoteViewerWindow(private val project: Project, private val protocolHand
 
         // inject query into javascript
         browser.jbCefClient.addLoadHandler(JcefInjectionLoadHandler(jsQuery), browser.cefBrowser)
-        val frontHandler = MessageProtocolFrontHandler(browser, protocolHandlers)
-        frontHandler.addHandler("theme", ThemeMessageProtocolHandler())
+        val frontHandler = ProtocolFrontHandler(browser, protocolHandlers)
+        frontHandler.addHandler("theme", ThemeProtocolHandler())
         jsQuery.addHandler(frontHandler)
 
         browser.jbCefClient.addDisplayHandler(JCefDebugDisplayHandler(), browser.cefBrowser) // for debugging

@@ -10,6 +10,7 @@ import io.cjlee.gitnote.core.CoreHandler
 import io.cjlee.gitnote.core.Message
 import io.cjlee.gitnote.jcef.GitNoteViewerWindow
 import io.cjlee.gitnote.jcef.JcefViewerWindowService
+import io.cjlee.gitnote.jcef.protocol.MessageProtocol
 import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
 import java.awt.GridLayout
 import javax.swing.Action
@@ -44,28 +45,24 @@ class NoteDialog(
             "messages/read" to object: ProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
                     val messages = handler.readMessages(filePath, line)
+                        .map { MessageProtocol(it.line, it.message)}
+                        .ifEmpty { listOf(MessageProtocol(line, ""))}
                     val resp = mapper.writeValueAsString(messages)
                     return JBCefJSQuery.Response(resp)
                 }
             },
-            "messages/update" to object: ProtocolHandler {
+            "messages/upsert" to object: ProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
-                    val message =  mapper.convertValue<Message>(data!!)
+                    val message =  mapper.convertValue<MessageProtocol>(data!!)
+                    handler.add(filePath, message.line, message.message)
                     handler.update(filePath, message.line, message.message)
                     return JBCefJSQuery.Response("")
                 }
             },
             "messages/delete" to object: ProtocolHandler {
                 override fun handle(data: Any?): JBCefJSQuery.Response {
-                    val message =  mapper.convertValue<Message>(data!!)
+                    val message =  mapper.convertValue<MessageProtocol>(data!!)
                     handler.delete(filePath, message.line)
-                    return JBCefJSQuery.Response("")
-                }
-            },
-            "messages/create" to object: ProtocolHandler {
-                override fun handle(data: Any?): JBCefJSQuery.Response {
-                    val message =  mapper.convertValue<Message>(data!!)
-                    handler.add(filePath, message.line, message.message)
                     return JBCefJSQuery.Response("")
                 }
             },

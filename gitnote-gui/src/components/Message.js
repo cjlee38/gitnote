@@ -17,9 +17,14 @@ const Message = (props) => {
     }
 
     const handleDelete = () => {
-
-        requestToIde("messages/delete", message)
+        const requestBody = {
+            message: messageValue,
+            line: message.line
+        }
+        requestToIde("messages/delete", requestBody)
             .then((data) => {
+                setMessageValue("");
+                setPrevMessageValue("");
                 console.log("deleteMessage got data : " + data);
             }).catch((error) => {
             console.log("deleteMessage got error : " + error);
@@ -31,8 +36,11 @@ const Message = (props) => {
         setIsEdit(false);
         // console.log(`prevMessage = ${JSON.stringify(prevMessageValue)}`)
         // console.log(`message = ${JSON.stringify(messageValue)}`)
-        console.log(`message combine result = ${JSON.stringify(Object.assign({}, message, {message: messageValue}))}`)
-        requestToIde("messages/update", Object.assign({}, message, {message: messageValue}))
+        const requestBody = {
+            message: messageValue,
+            line: message.line
+        }
+        requestToIde("messages/upsert", requestBody)
             .then((data) => {
                 props.reload();
                 // setPrevMessageValue(messageValue);
@@ -66,6 +74,7 @@ const Message = (props) => {
                     minRows={3}
                     style={{resize: 'none', border: 'none', backgroundColor: theme.editorBackground, color: theme.text}}
                     value={messageValue}
+                    placeholder={"Add a new note !"}
                     onChange={(e) => setMessageValue(e.target.value)}
                     readOnly={!isEdit}
                     wrap="soft"
