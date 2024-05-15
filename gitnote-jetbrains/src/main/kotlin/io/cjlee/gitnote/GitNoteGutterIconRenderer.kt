@@ -10,7 +10,7 @@ import io.cjlee.gitnote.core.CoreHandler
 import io.cjlee.gitnote.core.Message
 import javax.swing.Icon
 
-open class NoteGutterIconRenderer(
+open class GitNoteGutterIconRenderer(
     private val filePath: String,
     private val handler: CoreHandler,
     private val messages: List<Message>,
@@ -36,8 +36,8 @@ open class NoteGutterIconRenderer(
     override fun getClickAction(): AnAction {
         return object : AnAction() {
             override fun actionPerformed(e: AnActionEvent) {
-                val noteDialog = NoteDialog(e.project, filePath, handler, line, onDispose)
-                noteDialog.show()
+                val gitNoteDialog = GitNoteDialog(e.project, filePath, handler, line, onDispose)
+                gitNoteDialog.show()
             }
         }
     }
@@ -51,7 +51,7 @@ open class NoteGutterIconRenderer(
     }
 
     companion object {
-        val ICON = IconLoader.getIcon("/icons/icon.png", NoteGutterIconRenderer::class.java)
+        val ICON = IconLoader.getIcon("/icons/icon.png", GitNoteGutterIconRenderer::class.java)
             .let { IconUtil.scale(it, null, (13.0 / it.iconWidth).toFloat()) }
     }
 }

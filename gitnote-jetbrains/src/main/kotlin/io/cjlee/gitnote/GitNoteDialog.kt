@@ -16,7 +16,7 @@ import javax.swing.JComponent
 import javax.swing.JPanel
 
 
-class NoteDialog(
+class GitNoteDialog(
     private val project: Project?,
     private val filePath: String,
     private val handler: CoreHandler,

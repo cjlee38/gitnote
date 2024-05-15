@@ -5,10 +5,10 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.editor.EditorFactory
 
 @Service
-class CustomLineMarkerService : Disposable {
+class GitNoteService : Disposable {
     init {
-        val noteEditorFactoryListener = NoteEditorFactoryListener()
-        EditorFactory.getInstance().addEditorFactoryListener(noteEditorFactoryListener, this)
+        val gitNoteEditorFactoryListener = GitNoteEditorFactoryListener()
+        EditorFactory.getInstance().addEditorFactoryListener(gitNoteEditorFactoryListener, this)
     }
 
     override fun dispose() {

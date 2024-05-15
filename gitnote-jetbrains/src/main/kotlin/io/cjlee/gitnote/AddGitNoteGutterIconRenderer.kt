@@ -8,12 +8,12 @@ import java.awt.image.BufferedImage
 import javax.swing.Icon
 import javax.swing.ImageIcon
 
-class AddNoteGutterIconRenderer(
+class AddGitNoteGutterIconRenderer(
     filePath: String,
     handler: CoreHandler,
     override val line: Int,
     onDispose: () -> Unit
-): NoteGutterIconRenderer(filePath, handler, emptyList(), onDispose) {
+): GitNoteGutterIconRenderer(filePath, handler, emptyList(), onDispose) {
 
     override fun getIcon(): Icon {
         return transparent

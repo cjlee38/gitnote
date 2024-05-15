@@ -21,6 +21,11 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
 
+    <application-components>
+        <component>
+            <implementation-class>io.cjlee.gitnote.GitNoteService</implementation-class>
+        </component>
+    </application-components>
     <extensions defaultExtensionNs="com.intellij">
         <projectService id="CatViewerWindowService" serviceImplementation="io.cjlee.gitnote.jcef.JcefViewerWindowService"/>
     </extensions>

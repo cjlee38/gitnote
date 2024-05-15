@@ -14,7 +14,7 @@ import io.cjlee.gitnote.core.CoreHandler
 import io.cjlee.gitnote.core.Note
 
 
-class NoteDocumentListener(
+class GitNoteDocumentListener(
     private val editor: Editor,
     private val handler: CoreHandler,
     val file: VirtualFile
@@ -60,7 +60,7 @@ class NoteDocumentListener(
                 .groupBy { it.line }
                 .forEach { (line, messages) ->
                     try {
-                        markupModelCache.addIcon(line - 1, NoteGutterIconRenderer(file.path, handler, messages, onDispose))
+                        markupModelCache.addIcon(line - 1, GitNoteGutterIconRenderer(file.path, handler, messages, onDispose))
                     } catch (ignore: Exception) {
                     }
                 }
@@ -95,7 +95,7 @@ class NoteDocumentListener(
                 try {
                     prevLine = line - 1
                     currentHighlighter =
-                        markupModelCache.addIcon(line - 1, AddNoteGutterIconRenderer(file.path, handler, line, onDispose))
+                        markupModelCache.addIcon(line - 1, AddGitNoteGutterIconRenderer(file.path, handler, line, onDispose))
                 } catch (ignore: Exception) {
                 }
             }
@@ -104,7 +104,7 @@ class NoteDocumentListener(
     }
 
     override fun equals(other: Any?): Boolean {
-        return this.file.path == (other as? NoteDocumentListener)?.file?.path
+        return this.file.path == (other as? GitNoteDocumentListener)?.file?.path
     }
 
     override fun hashCode(): Int {
