@@ -8,8 +8,10 @@ skills to analyze the code intricately. However, even experts might find themsel
 domain-specific terminology. Understanding the code's functionality is one thing, but retaining all those details to
 construct a comprehensive view of the system's workings is an entirely different challenge.
 
-While one could resort to jotting down memos in a text editor or elsewhere, correlating these notes with the mental map
-of the system's architecture doesn't always come easily. This is where git-note comes into play—a tool designed to allow
+You could try to write down notes in a text editor or elsewhere, but it’s often hard to connect these notes with your overall understanding of the system’s architecture. This is where git-note comes into play—a tool designed to allow
 you to record your insights, comments, or notes directly related to the code while keeping them concealed from the
 source code itself. These comments are accessible exclusively to you and can be seamlessly integrated with your IDE,
 making it effortlessly easy to review your annotations within the context of the code.
+
+### Installation
+TBD
