@@ -3,7 +3,6 @@ package io.cjlee.gitnote
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.BulkAwareDocumentListener
-import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.openapi.editor.event.EditorMouseMotionListener
 import com.intellij.openapi.editor.ex.EditorGutterComponentEx
@@ -22,40 +21,34 @@ class NoteDocumentListener(
 ) : BulkAwareDocumentListener.Simple {
     private var note: Note? = null
     private val markupModelCache = MarkupModelCache(editor.markupModel)
-    private val onDispose = { this.refreshGutter() }
+    private val onDispose = { this.refreshGutter(force = true) }
+    private val debouncer = Debouncer()
 
     init {
-        refreshGutter()
+        refreshGutter(force = true)
         setupHoverIcon()
     }
 
-    override fun afterDocumentChange(document: Document) {
-        refreshGutter()
+    // TODO : bulk aware doesn't work as expected now, so here I implmeneted a very simple debouncer.
+    //   If bulk aware works, I can remove this debouncer, or even though coroutine might helps to handle this.
+    class Debouncer {
+        private var lastRun = 0L
+        private val delay = 1000L
+
+        fun passed(): Boolean {
+            val now = System.currentTimeMillis()
+            return (now - lastRun > delay).also { if (it) lastRun = now }
+        }
     }
 
-    // TODO : how to invoke in bulk mode ?
-//    override fun documentChanged(event: DocumentEvent) {
-//        println("======documentChanged")
-//
-//        if (!event.document.isInBulkUpdate) {
-//            println("non-bulk damnit!")
-//            return
-////            return documentChangedNonBulk(event)
-//        }
-//
-//        refreshGutter()
-//    }
-//
-//    override fun documentChangedNonBulk(event: DocumentEvent) {
-//        println("======documentChangedNonBulk")
-//
-//        refreshGutter()
-//    }
+    override fun afterDocumentChange(document: Document) {
+        val force = debouncer.passed().also { println("debouncer said $it") }
+        refreshGutter(force)
+    }
 
-    private fun refreshGutter() {
+    private fun refreshGutter(force: Boolean) {
         handler.read(file.path)?.let {
-            println("======refreshGutter")
-            this.note = handler.read(file.path)
+            this.note = handler.read(file.path, force)
             markupModelCache.removeAllIcons()
             addMessageIcons(onDispose)
         }

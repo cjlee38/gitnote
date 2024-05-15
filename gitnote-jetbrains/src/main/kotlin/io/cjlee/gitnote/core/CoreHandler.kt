@@ -12,12 +12,16 @@ class CoreHandler(private val connector: CoreConnector) {
 
     private val cache = NoteCache()
 
-    fun read(filePath: String): Note? {
+    fun read(filePath: String, force: Boolean = false): Note? {
+        if (force) {
+            println("forced")
+            return cache.put(filePath, read0(filePath))
+        }
         return cache.get(filePath) ?: cache.put(filePath, read0(filePath))
     }
 
-    fun readMessages(filePath: String, line: Int): List<Message> {
-        val note = read(filePath) ?: return emptyList()
+    fun readMessages(filePath: String, line: Int, force: Boolean = false): List<Message> {
+        val note = read(filePath, force) ?: return emptyList()
         return note.messages.filter { it.line == line }
     }
 
