@@ -1,6 +1,6 @@
 package io.cjlee.gitnote.jcef.protocol
 
-class MessageProtocol(
+class ProtocolMessaage(
     val line: Int,
     val message: String,
 )

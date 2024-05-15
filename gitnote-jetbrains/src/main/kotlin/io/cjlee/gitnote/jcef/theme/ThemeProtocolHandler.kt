@@ -8,13 +8,13 @@ import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
 class ThemeProtocolHandler : ProtocolHandler {
     private val mapper = jacksonObjectMapper()
 
-    override fun handle(data: Any?): Any {
+    override fun handle(data: Any?): ProtocolHandler.Response {
         val globalScheme = EditorColorsManager.getInstance().globalScheme
         val editorBackground = globalScheme.defaultBackground
-        return mapOf(
+        return ProtocolHandler.Response(mapOf(
             "editorBackground" to editorBackground.rgb,
             "background" to JBColor.background().rgb,
             "text" to JBColor.foreground().rgb,
-        )
+        ))
     }
 }

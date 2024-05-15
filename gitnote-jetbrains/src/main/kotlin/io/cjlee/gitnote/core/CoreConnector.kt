@@ -5,9 +5,12 @@ interface CoreConnector {
     fun read(filePath: String): Response
     fun update(filePath: String, line: Int, message: String): Response
     fun delete(filePath: String, line: Int): Response
-}
 
-data class Response(
-    val exitCode: Int,
-    val text: String,
-)
+    data class Response(
+        val exitCode: Int,
+        val text: String,
+    ) {
+        val isSuccess: Boolean
+            get() = exitCode == 0
+    }
+}

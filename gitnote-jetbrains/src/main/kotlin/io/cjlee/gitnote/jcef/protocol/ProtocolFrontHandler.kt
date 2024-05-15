@@ -18,8 +18,8 @@ class ProtocolFrontHandler(
         println("received data from webview : $input")
         val protocol = mapper.readValue<Protocol>(input)
         val handler = handlers[protocol.type] ?: object : ProtocolHandler {
-            override fun handle(data: Any?): String {
-                return "No handler for ${protocol.type}"
+            override fun handle(data: Any?): ProtocolHandler.Response {
+                return ProtocolHandler.Response(error = "No handler for ${protocol.type}")
             }
         }
         val payload = handler.handle(protocol.payload)

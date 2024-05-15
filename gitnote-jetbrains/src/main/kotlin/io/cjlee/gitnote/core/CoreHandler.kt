@@ -14,7 +14,6 @@ class CoreHandler(private val connector: CoreConnector) {
 
     fun read(filePath: String, force: Boolean = false): Note? {
         if (force) {
-            println("forced")
             return cache.put(filePath, read0(filePath))
         }
         return cache.get(filePath) ?: cache.put(filePath, read0(filePath))
@@ -26,45 +25,42 @@ class CoreHandler(private val connector: CoreConnector) {
     }
 
     private fun read0(filePath: String): Note? {
-        println("real read $filePath")
         val response = connector.read(filePath)
-        if (response.exitCode == 0) {
+        if (response.isSuccess) {
             return runCatching { mapper.readValue<Note>(response.text) }.getOrNull()
         }
         return null
     }
 
     // always do read on modification.
-    fun add(filePath: String, line: Int, message: String) {
-        connector.add(filePath, line, message)
+    fun add(filePath: String, line: Int, message: String): CoreConnector.Response {
+        return connector.add(filePath, line, message)
             .onSuccess { cache.put(filePath, read0(filePath)) }
     }
 
     // always do read on modification.
-    fun update(filePath: String, line: Int, message: String) {
-        connector.update(filePath, line, message)
+    fun update(filePath: String, line: Int, message: String): CoreConnector.Response {
+        return connector.update(filePath, line, message)
             .onSuccess { cache.put(filePath, read0(filePath)) }
     }
 
     // always do read on modification.
-    fun delete(filePath: String, line: Int) {
-        connector.delete(filePath, line)
+    fun delete(filePath: String, line: Int): CoreConnector.Response {
+        return connector.delete(filePath, line)
             .onSuccess { cache.put(filePath, read0(filePath)) }
     }
 
-    private fun Response.onSuccess(action: () -> Unit) {
-        if (exitCode == 0) {
-            println("successs")
+    private fun CoreConnector.Response.onSuccess(action: () -> Unit): CoreConnector.Response {
+        if (isSuccess) {
             action()
         }
-        println("no-successs")
+        return this
     }
 
     class NoteCache {
         private val notes = mutableMapOf<String, Note>()
 
         fun get(filePath: String): Note? {
-            println("cache read $filePath && ${notes[filePath] != null}")
             return notes[filePath]
         }
 

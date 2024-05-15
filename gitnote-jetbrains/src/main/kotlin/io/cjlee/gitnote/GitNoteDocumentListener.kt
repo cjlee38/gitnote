@@ -30,7 +30,7 @@ class GitNoteDocumentListener(
     }
 
     // TODO : bulk aware doesn't work as expected now, so here I implmeneted a very simple debouncer.
-    //   If bulk aware works, I can remove this debouncer, or even though coroutine might helps to handle this.
+    //   If bulk aware works somehow, I can remove this debouncer, or even though coroutine might helps to handle this.
     class Debouncer {
         private var lastRun = 0L
         private val delay = 1000L
@@ -42,7 +42,7 @@ class GitNoteDocumentListener(
     }
 
     override fun afterDocumentChange(document: Document) {
-        val force = debouncer.passed().also { println("debouncer said $it") }
+        val force = debouncer.passed()
         refreshGutter(force)
     }
 

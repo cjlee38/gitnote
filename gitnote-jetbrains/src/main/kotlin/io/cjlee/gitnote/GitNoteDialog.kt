@@ -8,7 +8,7 @@ import com.intellij.openapi.ui.DialogWrapper
 import io.cjlee.gitnote.core.CoreHandler
 import io.cjlee.gitnote.jcef.GitNoteViewerWindow
 import io.cjlee.gitnote.jcef.JcefViewerWindowService
-import io.cjlee.gitnote.jcef.protocol.MessageProtocol
+import io.cjlee.gitnote.jcef.protocol.ProtocolMessaage
 import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
 import java.awt.BorderLayout
 import javax.swing.Action
@@ -42,29 +42,39 @@ class GitNoteDialog(
 
         val protocolHandlers = mapOf(
             "messages/read" to object: ProtocolHandler {
-                override fun handle(data: Any?): Any {
-                    return handler.readMessages(filePath, line)
-                        .map { MessageProtocol(it.line, it.message) }
-                        .ifEmpty { listOf(MessageProtocol(line, "")) }
+                override fun handle(data: Any?): ProtocolHandler.Response {
+                    val messages = handler.readMessages(filePath, line)
+                        .map { ProtocolMessaage(it.line, it.message) }
+                        .ifEmpty { listOf(ProtocolMessaage(line, "")) }
+                    return ProtocolHandler.Response(messages)
                 }
             },
             "messages/upsert" to object: ProtocolHandler {
-                override fun handle(data: Any?): Any? {
-                    val message =  mapper.convertValue<MessageProtocol>(data!!)
+                override fun handle(data: Any?): ProtocolHandler.Response {
+                    val message =  mapper.convertValue<ProtocolMessaage>(data!!)
                     if (message.message.isEmpty()) {
                         handler.delete(filePath, message.line)
                     }
-                    handler.add(filePath, message.line, message.message)
-                    handler.update(filePath, message.line, message.message)
-                    return null
+                    val addResponse = handler.add(filePath, message.line, message.message)
+                    if (addResponse.isSuccess) {
+                        return ProtocolHandler.Response()
+                    }
+                    val updateResponse = handler.update(filePath, message.line, message.message)
+                    if (updateResponse.isSuccess) {
+                        return ProtocolHandler.Response()
+                    }
+                    return ProtocolHandler.Response(error = "Failed to update message : ${updateResponse.text}")
                 }
             },
             "messages/delete" to object: ProtocolHandler {
-                override fun handle(data: Any?): Any? {
-                    val message =  mapper.convertValue<MessageProtocol>(data!!)
-                    handler.delete(filePath, message.line)
+                override fun handle(data: Any?): ProtocolHandler.Response {
+                    val message =  mapper.convertValue<ProtocolMessaage>(data!!)
+                    val deleteResponse = handler.delete(filePath, message.line)
+                    if (!deleteResponse.isSuccess) {
+                        return ProtocolHandler.Response(error = "Failed to delete message : ${deleteResponse.text}")
+                    }
                     dispose()
-                    return null
+                    return ProtocolHandler.Response()
                 }
             },
         )

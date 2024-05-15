@@ -1,15 +1,19 @@
 import { v4 as uuidv4 } from "uuid";
 
-export async function requestToIde(type, data) {
+export async function requestToIde(type, data, onError = (msg) => {console.log(msg)}) {
     const id = uuidv4();
 
     return new Promise((resolve) => {
         const handler = (event) => {
             if (event.data.id === id) {
-                console.log("requestToIde got data : " + id + "..." + event.data.payload);
                 window.removeEventListener("message", handler);
                 const payload = event.data.payload;
-                resolve(payload);
+                if (payload.error) {
+                    onError(payload.error);
+                    return;
+                }
+                console.log("requestToIde", payload.data);
+                resolve(payload.data);
             }
         };
         window.addEventListener("message", handler);

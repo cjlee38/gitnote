@@ -20,9 +20,10 @@ import javax.swing.JComponent
 
 class GitNoteViewerWindow(private val project: Project, private val protocolHandlers: Map<String, ProtocolHandler>) {
     private val webView: JBCefBrowser = JBCefBrowser().apply {
-        this.loadURL("http://gitnote/index.html")
-        // uncomment below to test with local server
-        // this.loadURL("http://localhost:3000/index.html")
+        val isDevelopment = System.getProperty("gitnote.developmentPhase", "false").toBoolean()
+        if (isDevelopment) this.loadURL("http://localhost:3000/index.html")
+        else this.loadURL("http://gitnote/index.html")
+
         registerAppSchemeHandler()
         registerProtocolHandlers(this)
         jbCefClient.setProperty(JBCefClient.Properties.JS_QUERY_POOL_SIZE, 200)

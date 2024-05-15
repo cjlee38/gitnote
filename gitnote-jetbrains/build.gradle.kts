@@ -48,6 +48,7 @@ tasks {
 
     runIde {
         autoReloadPlugins = true
+        systemProperty("gitnote.developmentPhase", development)
     }
 
     buildPlugin {
