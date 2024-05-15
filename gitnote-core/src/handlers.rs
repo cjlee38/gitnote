@@ -10,9 +10,9 @@ use crate::note::Message;
 use crate::stdio::{inquire_boolean, write_out};
 
 
-pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Result<()> {
+pub fn add_note(file_name: String, line: usize, message: String, stage: bool) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
-    validate_file_staged(&file_path)?;
+    validate_file_staged(&file_path, stage)?;
 
     let blob = find_git_blob(&file_path)?;
 
@@ -27,20 +27,25 @@ pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Resu
     return Ok(());
 }
 
-fn validate_file_staged(file_path: &PathBuf) -> anyhow::Result<()> {
-    if !is_file_staged(&file_path)? {
-        write_out(&get_diff(&file_path)?);
-        if inquire_boolean(
-            &format!("File \"{:?}\" is not up-to-date. \
-            Would you stage the file before adding comment ?(y/n)", &file_path),
-        )? {
-            stage(&file_path)?;
-            return Ok(());
-        } else {
-            return Err(anyhow!("file is not staged."));
-        }
+fn validate_file_staged(file_path: &PathBuf, is_stage: bool) -> anyhow::Result<()> {
+    if is_file_staged(&file_path)? {
+        return Ok(());
     }
-    return Ok(());
+    if is_stage {
+        stage(&file_path)?;
+        return Ok(());
+    }
+
+    write_out(&get_diff(&file_path)?);
+    return if inquire_boolean(
+        &format!("File \"{:?}\" is not up-to-date. \
+        Would you stage the file before adding comment ?(y/n)", &file_path),
+    )? {
+        stage(&file_path)?;
+        Ok(())
+    } else {
+        Err(anyhow!("file is not staged."))
+    }
 }
 
 fn resolve_path(input_path: &String) -> anyhow::Result<PathBuf> {
@@ -103,9 +108,9 @@ pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn edit_note(file_name: String, line: usize, message: String) -> anyhow::Result<()> {
+pub fn edit_note(file_name: String, line: usize, message: String, stage: bool) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
-    validate_file_staged(&file_path)?;
+    validate_file_staged(&file_path, stage)?;
 
     let blob = find_git_blob(&file_path)?;
 

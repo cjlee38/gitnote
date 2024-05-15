@@ -10,7 +10,7 @@ class ProcessCoreConnector(
     private val runtime = Runtime.getRuntime()
 
     override fun add(filePath: String, line: Int, message: String): Response {
-        return executeCommand("git", "note", "add", "--file", filePath, "--line", "$line", "--message", message)
+        return executeCommand("git", "note", "add", "--file", filePath, "--line", "$line", "--message", message, "--stage")
     }
 
     override fun read(filePath: String): Response {

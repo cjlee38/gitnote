@@ -30,6 +30,8 @@ fn main() -> ExitCode {
                 add_matches.get_one::<String>("file").expect("required").clone(),
                 add_matches.get_one::<String>("line").expect("required").parse::<usize>().expect("required"),
                 add_matches.get_one::<String>("message").expect("required").clone(),
+                add_matches.get_flag("stage")
+
             ))
         }
         Some(("edit", edit_matches)) => {
@@ -37,6 +39,7 @@ fn main() -> ExitCode {
                 edit_matches.get_one::<String>("file").expect("required").clone(),
                 edit_matches.get_one::<String>("line").expect("required").parse::<usize>().expect("required"),
                 edit_matches.get_one::<String>("message").expect("required").clone(),
+                edit_matches.get_flag("stage"),
             ))
         }
         Some(("read", read_matches)) => {
