@@ -29,8 +29,8 @@ pub fn read_all_note(file_path: &PathBuf) -> anyhow::Result<Note> {
     let id = Note::get_id(file_path)?;
     let note_path = find_note_path(&id)?;
 
-    let file =
-        File::open(&note_path).with_context(|| format!("cannot find note : {:?}", &note_path))?;
+    let file = File::open(&note_path)
+        .with_context(|| format!("Cannot find the note at path: {:?}", &note_path))?;
     let reader = BufReader::new(file);
     let messages = serde_json::from_reader(reader)?;
     return Ok(messages);
@@ -135,7 +135,7 @@ fn find_note_path(id: &String) -> anyhow::Result<PathBuf> {
 fn ensure_dir(dir_path: &PathBuf) -> anyhow::Result<()> {
     if !dir_path.exists() {
         return Ok(std::fs::create_dir(dir_path)
-            .context(format!("Failed to create dir for {:?}", dir_path))?);
+            .context(format!("Failed to create directory at path: {:?}", dir_path))?);
     }
     return Ok(());
 }

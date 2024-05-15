@@ -32,7 +32,7 @@ pub fn find_root_path() -> anyhow::Result<PathBuf> {
     Ok(Repository::discover(".")
         .with_context(|| {
             format!(
-                "git repository not found for current directory({:?})",
+                "Could not find a Git repository in the current directory : ({:?})",
                 env::current_dir().unwrap()
             )
         })?
@@ -68,7 +68,7 @@ pub fn find_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
         return GitBlob::of(blob.clone(), file_path)
     }
 
-    Err(anyhow!("File not found as a blob in the index or in the repository HEAD"))
+    return Err(anyhow!("The file was not found in the repository's index or in the latest commit"));
 }
 
 // TODO : It only returns the blobs which contained in commits.
@@ -83,7 +83,7 @@ pub fn find_all_git_blobs(file_path:&PathBuf) -> anyhow::Result<Vec<GitBlob>> {
 
     for commit_id in revwalk {
         if let Err(_e) = commit_id {
-            return Err(anyhow!(format!("cannot find commit_id on revwalk {:?}", file_path)))
+            return Err(anyhow!(format!("Could not find the commit ID while walking through the repository history for file: {:?}", file_path)));
         }
         let commit = repo.find_commit(commit_id.unwrap())?;
         let tree = commit.tree()?;
