@@ -27,7 +27,8 @@ impl Note {
     }
 
     pub fn get_id(path: &PathBuf) -> anyhow::Result<String> {
-        Ok(sha256::digest(path.canonicalize()?.to_str().unwrap()))
+        return Ok(sha256::digest(path.to_str()
+            .with_context(|| format!("[unexpected error] Failed to resolve path {:?}", path))?));
     }
 
     pub fn append(&mut self, message: Message) -> anyhow::Result<()> {
@@ -84,9 +85,9 @@ impl Message {
     pub fn new(blob: &GitBlob, line: usize, message: String) -> anyhow::Result<Self> {
         let snippet = blob
             .content
-            .get(line)
+            .get(line - 1)
             .with_context(|| {
-                format!("specified line({}) is too big for file {:?}", line, &blob.file_path)
+                format!("specified line({}) extends limit for file {:?}", line, &blob.file_path)
             })?.to_string();
 
         Ok(Message {

@@ -30,7 +30,7 @@ pub fn read_all_note(file_path: &PathBuf) -> anyhow::Result<Note> {
     let note_path = find_note_path(&id)?;
 
     let file = File::open(&note_path)
-        .with_context(|| format!("Cannot find the note at path: {:?}", &note_path))?;
+        .with_context(|| format!("Cannot find the note for path: {:?}", &file_path))?;
     let reader = BufReader::new(file);
     let messages = serde_json::from_reader(reader)?;
     return Ok(messages);

@@ -3,7 +3,7 @@ use std::io::BufRead;
 use anyhow::anyhow;
 
 pub fn inquire_boolean(prompt: &String) -> anyhow::Result<bool> {
-    println!("{}", prompt);
+    print!("{}", prompt);
     let mut line = String::new();
     let stdin = io::stdin();
     stdin.lock().read_line(&mut line)?;

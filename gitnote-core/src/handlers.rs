@@ -79,7 +79,7 @@ pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
     let messages = note.messages;
     content.iter().enumerate()
         .for_each(|(line, line_content)| {
-            let message = messages.iter().find(|m| m.line == line);
+            let message = messages.iter().find(|m| m.line == line + 1);
             if let Some(found) = message {
                 let message_lines = found.message.split("\n")
                     .map(String::from)
