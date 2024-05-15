@@ -2,11 +2,11 @@ use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
 
 use anyhow::{anyhow, Context};
 use git2::{Blob, Repository, StatusOptions, StatusShow};
 use linked_hash_set::LinkedHashSet;
+use crate::utils::PathBufExt;
 
 #[derive(Debug)]
 pub struct GitBlob {
@@ -103,8 +103,8 @@ pub fn find_all_git_blobs(file_path:&PathBuf) -> anyhow::Result<Vec<GitBlob>> {
     return Ok(blobs);
 }
 
-pub fn is_file_staged(file_path: &PathBuf) -> anyhow::Result<bool> {
-    let file_path_str = file_path.to_str().context("unexpected error")?;
+pub fn is_file_committed(file_path: &PathBuf) -> anyhow::Result<bool> {
+    let file_path_str = file_path.try_to_str()?;
     let repository = Repository::discover(".")?;
 
     let mut opts = StatusOptions::new();
@@ -119,32 +119,9 @@ pub fn is_file_staged(file_path: &PathBuf) -> anyhow::Result<bool> {
         });
 
     return match entry {
-        Some(entry) => Ok(entry.status().bits() <= (1 << 4)), // CURRENT + INDEXED_XXX
+        Some(entry) => Ok(entry.status().bits() == 0), // CURRENT
         None => Ok(false),
     };
-}
-
-pub fn get_diff(file_path: &PathBuf) -> anyhow::Result<String> {
-    let output = Command::new("git")
-        .arg("diff")
-        .arg("--color")
-        .arg("--")
-        .arg(file_path)
-        .output()?;
-
-    if !output.status.success() {
-        return Err(anyhow!("Failed to execute git diff"));
-    }
-
-    return Ok(String::from_utf8(output.stdout)?);
-}
-
-pub fn stage(file_path: &PathBuf) -> anyhow::Result<()> {
-    let repo = Repository::discover(".")?;
-    let mut index = repo.index()?;
-    index.add_path(file_path)?;
-    index.write()?;
-    Ok(())
 }
 
 fn split_lines(s: &str) -> Vec<String> {

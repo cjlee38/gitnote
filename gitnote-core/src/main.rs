@@ -6,6 +6,7 @@ mod libgit;
 mod io;
 mod stdio;
 mod note;
+mod utils;
 
 static EXIT_OK: u8 = 0;
 static EXIT_ERR: u8 = 1;
@@ -29,9 +30,7 @@ fn main() -> ExitCode {
             handle_command(handlers::add_note(
                 add_matches.get_one::<String>("file").expect("required").clone(),
                 add_matches.get_one::<String>("line").expect("required").parse::<usize>().expect("required"),
-                add_matches.get_one::<String>("message").expect("required").clone(),
-                add_matches.get_flag("stage")
-
+                add_matches.get_one::<String>("message").expect("required").clone()
             ))
         }
         Some(("edit", edit_matches)) => {
@@ -39,7 +38,6 @@ fn main() -> ExitCode {
                 edit_matches.get_one::<String>("file").expect("required").clone(),
                 edit_matches.get_one::<String>("line").expect("required").parse::<usize>().expect("required"),
                 edit_matches.get_one::<String>("message").expect("required").clone(),
-                edit_matches.get_flag("stage"),
             ))
         }
         Some(("read", read_matches)) => {

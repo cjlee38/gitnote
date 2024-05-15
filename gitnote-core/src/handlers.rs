@@ -5,14 +5,13 @@ use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
 use crate::io::{read_all_note, read_or_create_note, read_valid_note, write_note};
-use crate::libgit::{find_git_blob, find_root_path, get_diff, is_file_staged, stage};
+use crate::libgit::{find_git_blob, find_root_path, is_file_committed};
 use crate::note::Message;
-use crate::stdio::{inquire_boolean, write_out};
+use crate::stdio::write_out;
 
-
-pub fn add_note(file_name: String, line: usize, message: String, stage: bool) -> anyhow::Result<()> {
+pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
-    validate_file_staged(&file_path, stage)?;
+    validate_file_committed(&file_path)?;
 
     let blob = find_git_blob(&file_path)?;
 
@@ -27,25 +26,12 @@ pub fn add_note(file_name: String, line: usize, message: String, stage: bool) ->
     return Ok(());
 }
 
-fn validate_file_staged(file_path: &PathBuf, is_stage: bool) -> anyhow::Result<()> {
-    if is_file_staged(&file_path)? {
-        return Ok(());
+fn validate_file_committed(file_path: &PathBuf) -> anyhow::Result<()> {
+    if !is_file_committed(&file_path)? {
+        return Err(anyhow!("File {:?} is not committed yet. \
+        You should commit first to add note", file_path));
     }
-    if is_stage {
-        stage(&file_path)?;
-        return Ok(());
-    }
-
-    write_out(&get_diff(&file_path)?);
-    return if inquire_boolean(
-        &format!("File \"{:?}\" is not up-to-date. \
-        Would you stage the file before adding comment ?(y/n)", &file_path),
-    )? {
-        stage(&file_path)?;
-        Ok(())
-    } else {
-        Err(anyhow!("file is not staged."))
-    }
+    return Ok(());
 }
 
 fn resolve_path(input_path: &String) -> anyhow::Result<PathBuf> {
@@ -108,9 +94,9 @@ pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn edit_note(file_name: String, line: usize, message: String, stage: bool) -> anyhow::Result<()> {
+pub fn edit_note(file_name: String, line: usize, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
-    validate_file_staged(&file_path, stage)?;
+    validate_file_committed(&file_path)?;
 
     let blob = find_git_blob(&file_path)?;
 

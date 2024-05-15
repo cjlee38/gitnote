@@ -11,7 +11,6 @@ pub fn build_cli() -> Command {
                 .arg(file_argument("Specifies the file to add a note to"))
                 .arg(line_argument("Specifies the line number to add a note to"))
                 .arg(message_argument("The note message"))
-                .arg(stage_argument()),
         )
         .subcommand(
             Command::new("read")
@@ -65,14 +64,6 @@ fn format_argument() -> Arg {
     Arg::new("format")
         .long("formatted")
         .help("Prints the note in a json-formatted way")
-        .action(ArgAction::SetTrue)
-        .required(false)
-}
-
-fn stage_argument() -> Arg {
-    Arg::new("stage")
-        .long("stage")
-        .help("Automatically stages the file when adding a note")
         .action(ArgAction::SetTrue)
         .required(false)
 }

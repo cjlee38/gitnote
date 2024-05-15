@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::libgit::GitBlob;
+use crate::utils::PathBufExt;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Note {
@@ -27,8 +28,7 @@ impl Note {
     }
 
     pub fn get_id(path: &PathBuf) -> anyhow::Result<String> {
-        return Ok(sha256::digest(path.to_str()
-            .with_context(|| format!("[unexpected error] Failed to resolve path {:?}", path))?));
+        return Ok(sha256::digest(path.try_to_str()?));
     }
 
     pub fn append(&mut self, message: Message) -> anyhow::Result<()> {
