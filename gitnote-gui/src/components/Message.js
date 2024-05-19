@@ -79,6 +79,7 @@ const Message = (props) => {
                         value={messageValue}
                         placeholder={"Add a new note !"}
                         onChange={(e) => setMessageValue(e.target.value)}
+                        onDoubleClick={() => handleEdit()}
                         readOnly={!isEdit}
                         wrap="soft"
                         cols={50}
