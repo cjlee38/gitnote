@@ -1,6 +1,8 @@
 # git-note
 An ephemeral comment extension based on Git.
 
+![demo](./docs/demo.gif)
+
 ### Motivation
 Upon joining a new company, settling into your workspace, and opening up the project for the first time, you're greeted
 with an overwhelming expanse of code. As a professional programmer adept in various programming languages, you possess the
