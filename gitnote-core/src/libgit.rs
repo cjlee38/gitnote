@@ -4,9 +4,8 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context};
-use git2::{Blob, Repository, StatusOptions, StatusShow};
+use git2::{Blob, Repository};
 use linked_hash_set::LinkedHashSet;
-use crate::utils::PathBufExt;
 
 #[derive(Debug)]
 pub struct GitBlob {
@@ -103,25 +102,13 @@ pub fn find_all_git_blobs(file_path:&PathBuf) -> anyhow::Result<Vec<GitBlob>> {
     return Ok(blobs);
 }
 
-pub fn is_file_committed(file_path: &PathBuf) -> anyhow::Result<bool> {
-    let file_path_str = file_path.try_to_str()?;
+pub fn stage_file(file_path: &PathBuf) -> anyhow::Result<()> {
     let repository = Repository::discover(".")?;
 
-    let mut opts = StatusOptions::new();
-    opts.include_untracked(true)
-        .include_unmodified(true)
-        .show(StatusShow::IndexAndWorkdir);
-
-    let statuses = repository.statuses(Some(&mut opts))?;
-    let entry = statuses.iter()
-        .find(|entry| {
-            entry.path().unwrap_or_default() == file_path_str
-        });
-
-    return match entry {
-        Some(entry) => Ok(entry.status().bits() == 0), // CURRENT
-        None => Ok(false),
-    };
+    let mut index = repository.index()?;
+    index.add_path(file_path)?;
+    index.write()?;
+    Ok(())
 }
 
 fn split_lines(s: &str) -> Vec<String> {

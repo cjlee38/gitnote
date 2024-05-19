@@ -5,13 +5,13 @@ use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
 use crate::io::{read_all_note, read_or_create_note, read_valid_note, write_note};
-use crate::libgit::{find_git_blob, find_root_path, is_file_committed};
+use crate::libgit::{find_git_blob, find_root_path, stage_file};
 use crate::note::Message;
 use crate::stdio::write_out;
 
 pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
-    validate_file_committed(&file_path)?;
+    validate_file_staged(&file_path)?;
 
     let blob = find_git_blob(&file_path)?;
 
@@ -20,17 +20,16 @@ pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Resu
     note.append(message)?;
     write_note(&note)?;
     println!(
-        "successfully added comment for {:?} in range {}",
+        "Successfully added comment for {:?} in range {}",
         &file_path, line
     );
     return Ok(());
 }
 
-fn validate_file_committed(file_path: &PathBuf) -> anyhow::Result<()> {
-    if !is_file_committed(&file_path)? {
-        return Err(anyhow!("File {:?} is not committed yet. \
-        You should commit first to add note", file_path));
-    }
+fn validate_file_staged(file_path: &PathBuf) -> anyhow::Result<()> {
+    stage_file(&file_path).with_context(|| {
+        format!("Failed to stage file {:?}. Please make sure the file is staged.", file_path)
+    })?;
     return Ok(());
 }
 
@@ -87,7 +86,7 @@ pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
                     }
                 }
             } else {
-                write_out(&format!("{} {}", line.to_string().yellow(), line_content));
+                write_out(&format!("{} {}", (line + 1).to_string().yellow(), line_content));
             }
         });
 
@@ -96,7 +95,7 @@ pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
 
 pub fn edit_note(file_name: String, line: usize, message: String) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
-    validate_file_committed(&file_path)?;
+    validate_file_staged(&file_path)?;
 
     let blob = find_git_blob(&file_path)?;
 

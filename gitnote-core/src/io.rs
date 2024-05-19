@@ -51,9 +51,13 @@ pub fn read_valid_note(file_path: &PathBuf) -> anyhow::Result<Note> {
     return Ok(Note::from(&all_note.id, &all_note.reference, valid_messages));
 }
 
-fn is_valid_message(git_blobs: &Vec<GitBlob>, message: Message) -> Option<Message> {
+fn is_valid_message(git_blobs: &Vec<GitBlob>, mut message: Message) -> Option<Message> {
     let repo = Repository::discover(".").ok()?;
     let pos = git_blobs.iter().position(|blob| blob.id == message.id)?;
+    if pos == git_blobs.len() - 1 {
+        return Some(message);
+    }
+
     let mut diff_model = DiffModel::of(&message);
     let slice = &git_blobs[pos..];
     let mut diff_options = DiffOptions::new();
@@ -80,6 +84,9 @@ fn is_valid_message(git_blobs: &Vec<GitBlob>, message: Message) -> Option<Messag
         }
         diff_model.valid.clear();
     }
+    // this message is valid, so update and return
+    message.line = diff_model.line;
+    message.id = git_blobs.last()?.id.clone();
     Some(message)
 }
 
