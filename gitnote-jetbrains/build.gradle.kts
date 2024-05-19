@@ -53,7 +53,7 @@ tasks {
 
     buildPlugin {
         if (!development) {
-//            dependsOn("buildCore")
+            dependsOn("buildCore")
             dependsOn("buildGui")
         }
     }
@@ -68,17 +68,17 @@ tasks {
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
 
-//    register<Exec>("buildCore") {
-//        workingDir = file("../gitnote-core")
-//        commandLine("cargo", "build", "--release")
-//    }
-//
-//    register<Copy>("copyCore") {
-//        dependsOn(named("buildCore"))
-//        delete("src/main/resources/core/")
-//        from("../gitnote-core/target/release/git-note")
-//        into("src/main/resources/core/.")
-//    }
+    register<Exec>("buildCore") {
+        workingDir = file("../gitnote-core")
+        commandLine("cargo", "build", "--release")
+    }
+
+    register<Copy>("copyCore") {
+        dependsOn(named("buildCore"))
+        delete("src/main/resources/core/")
+        from("../gitnote-core/target/release/git-note")
+        into("src/main/resources/core/.")
+    }
 
     register<NpxTask>("buildGui") {
         dependsOn("npmInstall") // Ensure npm is installed
@@ -96,7 +96,7 @@ tasks {
 
     processResources {
         if (!development) {
-//            dependsOn(named("copyCore"))
+            dependsOn(named("copyCore"))
             dependsOn(named("copyGui"))
         }
     }
