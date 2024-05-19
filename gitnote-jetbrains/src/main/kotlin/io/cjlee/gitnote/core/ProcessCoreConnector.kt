@@ -1,5 +1,6 @@
 package io.cjlee.gitnote.core
 
+import org.apache.commons.io.FileUtils
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -7,7 +8,8 @@ import java.io.InputStreamReader
 class ProcessCoreConnector(
     private val projectPath: String
 ) : CoreConnector {
-    private val command = arrayOf("git", "note")
+    private val command
+        get() = COMMAND
     private val runtime = Runtime.getRuntime()
 
     override fun add(filePath: String, line: Int, message: String): CoreConnector.Response {
@@ -37,6 +39,25 @@ class ProcessCoreConnector(
         } catch (e: Exception) {
             e.printStackTrace()
             CoreConnector.Response(999, "")
+        }
+    }
+
+    companion object ProcessLoader {
+        private const val RESOURCE_LOCATION = "core/git-note"
+        private val BINARY_LOCATION = System.getProperty("java.io.tmpdir") + "git-note"
+        val COMMAND: Array<String>
+
+        init {
+            val classLoader = this::class.java.classLoader
+            val file = File(BINARY_LOCATION)
+            if (!file.exists()) {
+                FileUtils.copyURLToFile(classLoader.getResource(RESOURCE_LOCATION), file)
+            }
+
+            COMMAND = if (!file.setExecutable(true)) { arrayOf("git", "note") }
+            else { arrayOf(BINARY_LOCATION) }
+
+            file.deleteOnExit()
         }
     }
 }
