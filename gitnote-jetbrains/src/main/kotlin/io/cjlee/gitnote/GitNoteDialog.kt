@@ -66,10 +66,12 @@ class GitNoteDialog(
                     }
                     val addResponse = handler.add(filePath, message.line, message.message)
                     if (addResponse.isSuccess) {
+                        dispose()
                         return ProtocolHandler.Response()
                     }
                     val updateResponse = handler.update(filePath, message.line, message.message)
                     if (updateResponse.isSuccess) {
+                        dispose()
                         return ProtocolHandler.Response()
                     }
                     return ProtocolHandler.Response(error = "Failed to update message : ${updateResponse.text}")
