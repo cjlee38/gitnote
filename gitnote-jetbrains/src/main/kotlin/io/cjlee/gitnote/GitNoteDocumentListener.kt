@@ -12,6 +12,7 @@ import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.vfs.VirtualFile
 import io.cjlee.gitnote.core.CoreHandler
 import io.cjlee.gitnote.core.Note
+import java.util.concurrent.Executors
 
 
 class GitNoteDocumentListener(
@@ -23,10 +24,12 @@ class GitNoteDocumentListener(
     private val markupModelCache = MarkupModelCache(editor.markupModel)
     private val onDispose = { this.refreshGutter(force = true) }
     private val debouncer = Debouncer()
+    private val executor = Executors.newSingleThreadScheduledExecutor()
 
     init {
         refreshGutter(force = true)
         setupHoverIcon()
+        executor.scheduleWithFixedDelay({ refreshGutter(force = true) }, 1, 1, java.util.concurrent.TimeUnit.SECONDS)
     }
 
     // TODO : bulk aware doesn't work as expected now, so here I implmeneted a very simple debouncer.
@@ -39,6 +42,11 @@ class GitNoteDocumentListener(
             val now = System.currentTimeMillis()
             return (now - lastRun > delay).also { if (it) lastRun = now }
         }
+    }
+    
+    fun dispose() {
+        executor.shutdown()
+        markupModelCache.removeAllIcons()
     }
 
     override fun afterDocumentChange(document: Document) {
