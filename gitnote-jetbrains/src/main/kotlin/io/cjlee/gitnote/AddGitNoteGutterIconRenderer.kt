@@ -2,18 +2,16 @@ package io.cjlee.gitnote
 
 import com.intellij.util.IconUtil
 import com.intellij.util.ui.ImageUtil
-import io.cjlee.gitnote.core.CoreHandler
+import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
 import java.awt.AlphaComposite
 import java.awt.image.BufferedImage
 import javax.swing.Icon
 import javax.swing.ImageIcon
 
 class AddGitNoteGutterIconRenderer(
-    filePath: String,
-    handler: CoreHandler,
     override val line: Int,
-    onDispose: () -> Unit
-): GitNoteGutterIconRenderer(filePath, handler, emptyList(), onDispose) {
+    protocolHandlers: Map<String, ProtocolHandler>,
+) : GitNoteGutterIconRenderer(emptyList(), protocolHandlers) {
 
     override fun getIcon(): Icon {
         return transparent
@@ -23,7 +21,7 @@ class AddGitNoteGutterIconRenderer(
 
     companion object {
         private val transparent = makeIconTransparent(ICON, 0.5f)
-            .let { IconUtil.scale(it, null, (13.0 / it.iconWidth).toFloat())}
+            .let { IconUtil.scale(it, null, (13.0 / it.iconWidth).toFloat()) }
 
         private fun makeIconTransparent(icon: Icon, alpha: Float): Icon {
             val bufferedImage = ImageUtil.createImage(icon.iconWidth, icon.iconHeight, BufferedImage.TYPE_INT_ARGB)

@@ -27,16 +27,14 @@ pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Resu
 }
 
 fn validate_file_staged(file_path: &PathBuf) -> anyhow::Result<()> {
-    stage_file(&file_path).with_context(|| {
-        format!("Failed to stage file {:?}. Please make sure the file is staged.", file_path)
-    })?;
+    stage_file(&file_path)?;
     return Ok(());
 }
 
 fn resolve_path(input_path: &String) -> anyhow::Result<PathBuf> {
     let abs_path = PathBuf::from(input_path)
         .canonicalize()
-        .with_context(|| format!("cannot find to specified file [{input_path}]."))?;
+        .with_context(|| format!("cannot find specified file [{input_path}]."))?;
     let root_path = find_root_path()?;
 
     if !abs_path.exists() || !abs_path.starts_with(&root_path) {

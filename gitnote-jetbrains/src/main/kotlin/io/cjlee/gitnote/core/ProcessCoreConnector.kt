@@ -50,9 +50,7 @@ class ProcessCoreConnector(
         init {
             val classLoader = this::class.java.classLoader
             val file = File(BINARY_LOCATION)
-            if (!file.exists()) {
-                FileUtils.copyURLToFile(classLoader.getResource(RESOURCE_LOCATION), file)
-            }
+            FileUtils.copyURLToFile(classLoader.getResource(RESOURCE_LOCATION), file)
 
             COMMAND = if (!file.setExecutable(true)) { arrayOf("git", "note") }
             else { arrayOf(BINARY_LOCATION) }

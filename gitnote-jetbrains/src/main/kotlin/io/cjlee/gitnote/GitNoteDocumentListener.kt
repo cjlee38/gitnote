@@ -1,5 +1,9 @@
 package io.cjlee.gitnote
 
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.convertValue
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.BulkAwareDocumentListener
@@ -9,9 +13,12 @@ import com.intellij.openapi.editor.ex.EditorGutterComponentEx
 import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.editor.markup.MarkupModel
 import com.intellij.openapi.editor.markup.RangeHighlighter
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
 import io.cjlee.gitnote.core.CoreHandler
 import io.cjlee.gitnote.core.Note
+import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
+import io.cjlee.gitnote.jcef.protocol.ProtocolMessaage
 import java.util.concurrent.Executors
 
 
@@ -22,7 +29,11 @@ class GitNoteDocumentListener(
 ) : BulkAwareDocumentListener.Simple {
     private var note: Note? = null
     private val markupModelCache = MarkupModelCache(editor.markupModel)
-    private val onDispose = { this.refreshGutter(force = true) }
+    private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
+    private lateinit var document: Document
+    private val onDispose = {
+        ApplicationManager.getApplication().invokeLater { this.refreshGutter(force = true) }
+    }
     private val debouncer = Debouncer()
     private val executor = Executors.newSingleThreadScheduledExecutor()
 
@@ -43,13 +54,17 @@ class GitNoteDocumentListener(
             return (now - lastRun > delay).also { if (it) lastRun = now }
         }
     }
-    
+
     fun dispose() {
         executor.shutdown()
         markupModelCache.removeAllIcons()
     }
 
     override fun afterDocumentChange(document: Document) {
+        val manager = FileDocumentManager.getInstance()
+        if (manager.isDocumentUnsaved(document)) {
+            manager.saveDocument(document)
+        }
         val force = debouncer.passed()
         refreshGutter(force)
     }
@@ -58,21 +73,66 @@ class GitNoteDocumentListener(
         handler.read(file.path)?.let {
             this.note = handler.read(file.path, force)
             markupModelCache.removeAllIcons()
-            addMessageIcons(onDispose)
+            addMessageIcons()
         }
     }
 
-    private fun addMessageIcons(onDispose: () -> Unit) {
+    private fun addMessageIcons() {
         note?.let { note ->
             note.messages
                 .groupBy { it.line }
                 .forEach { (line, messages) ->
                     try {
-                        markupModelCache.addIcon(line - 1, GitNoteGutterIconRenderer(file.path, handler, messages, onDispose))
+                        println("addMessageIcons : $line")
+                        val protocolHandlers = createProtocolHandlers(file.path, line)
+                        markupModelCache.addIcon(line - 1, GitNoteGutterIconRenderer(messages, protocolHandlers))
                     } catch (ignore: Exception) {
                     }
                 }
         }
+    }
+
+    private fun createProtocolHandlers(filePath: String, line: Int): Map<String, ProtocolHandler> {
+        return mapOf(
+            "messages/read" to object : ProtocolHandler {
+                override fun handle(data: Any?): ProtocolHandler.Response {
+                    val messages = handler.readMessages(filePath, line)
+                        .map { ProtocolMessaage(it.line, it.message) }
+                        .ifEmpty { listOf(ProtocolMessaage(line, "")) }
+                    return ProtocolHandler.Response(messages)
+                }
+            },
+            "messages/upsert" to object : ProtocolHandler {
+                override fun handle(data: Any?): ProtocolHandler.Response {
+                    val message = mapper.convertValue<ProtocolMessaage>(data!!)
+                    if (message.message.isEmpty()) {
+                        handler.delete(filePath, message.line)
+                    }
+                    val addResponse = handler.add(filePath, message.line, message.message)
+                    if (addResponse.isSuccess) {
+                        onDispose()
+                        return ProtocolHandler.Response()
+                    }
+                    val updateResponse = handler.update(filePath, message.line, message.message)
+                    if (updateResponse.isSuccess) {
+                        onDispose()
+                        return ProtocolHandler.Response()
+                    }
+                    return ProtocolHandler.Response(error = "Failed to add or update message : ${updateResponse.text}")
+                }
+            },
+            "messages/delete" to object : ProtocolHandler {
+                override fun handle(data: Any?): ProtocolHandler.Response {
+                    val message = mapper.convertValue<ProtocolMessaage>(data!!)
+                    val deleteResponse = handler.delete(filePath, message.line)
+                    if (!deleteResponse.isSuccess) {
+                        return ProtocolHandler.Response(error = "Failed to delete message : ${deleteResponse.text}")
+                    }
+                    onDispose()
+                    return ProtocolHandler.Response()
+                }
+            },
+        )
     }
 
     private fun setupHoverIcon() {
@@ -102,8 +162,10 @@ class GitNoteDocumentListener(
 
                 try {
                     prevLine = line - 1
-                    currentHighlighter =
-                        markupModelCache.addIcon(line - 1, AddGitNoteGutterIconRenderer(file.path, handler, line, onDispose))
+                    currentHighlighter = markupModelCache.addIcon(
+                        line - 1,
+                        AddGitNoteGutterIconRenderer(line, createProtocolHandlers(file.path, line))
+                    )
                 } catch (ignore: Exception) {
                 }
             }

@@ -31,7 +31,7 @@ class GitNoteEditorFactoryListener : EditorFactoryListener {
         while (f != null) {
             val found = f.findChild(".git")
             if (found != null) {
-                return found.canonicalPath
+                return f.canonicalPath
             }
             f = f.parent
         }

@@ -1,6 +1,6 @@
 use std::env;
 use std::fs::File;
-use std::io::Write;
+use std::io::{Write};
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context};
@@ -70,10 +70,6 @@ pub fn find_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
     return Err(anyhow!("The file was not found in the repository's index or in the latest commit"));
 }
 
-// TODO : It only returns the blobs which contained in commits.
-//   There could be several ways to handle this problem...
-//   1) Notify user that the file is in dangling state.
-//   2) Find the blob any how -> Might to lead loss of data
 pub fn find_all_git_blobs(file_path:&PathBuf) -> anyhow::Result<Vec<GitBlob>> {
     let repository = Repository::discover(".")?;
     let mut oids = LinkedHashSet::new();
@@ -114,7 +110,12 @@ pub fn find_all_git_blobs(file_path:&PathBuf) -> anyhow::Result<Vec<GitBlob>> {
 pub fn stage_file(file_path: &PathBuf) -> anyhow::Result<()> {
     let repository = Repository::discover(".")?;
 
+    if repository.status_file(file_path)?.is_ignored() {
+        return Err(anyhow!("The file {:?} is ignored", file_path));
+    }
+
     let mut index = repository.index()?;
+    index.read(true)?;
     index.add_path(file_path)?;
     index.write()?;
     Ok(())
