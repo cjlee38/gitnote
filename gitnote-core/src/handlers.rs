@@ -19,10 +19,8 @@ pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Resu
     let message = Message::new(&blob, line, message)?;
     note.append(message)?;
     write_note(&note)?;
-    println!(
-        "Successfully added comment for {:?} in range {}",
-        &file_path, line
-    );
+    write_out(&format!("Successfully added comment for {:?} in range {}",
+                      &file_path, line));
     return Ok(());
 }
 
