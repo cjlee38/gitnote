@@ -5,7 +5,6 @@ use std::path::PathBuf;
 
 use anyhow::{anyhow, Context};
 use git2::{Blob, Repository};
-use linked_hash_set::LinkedHashSet;
 
 #[derive(Debug)]
 pub struct GitBlob {
@@ -68,43 +67,6 @@ pub fn find_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
     }
 
     return Err(anyhow!("The file was not found in the repository's index or in the latest commit"));
-}
-
-pub fn find_all_git_blobs(file_path:&PathBuf) -> anyhow::Result<Vec<GitBlob>> {
-    let repository = Repository::discover(".")?;
-    let mut oids = LinkedHashSet::new();
-
-    // find in index
-    let index = repository.index()?;
-    if let Some(entry) = index.get_path(file_path, 0) {
-        let blob = repository.find_blob(entry.id)?;
-        oids.insert(blob.id());
-    }
-
-    // find in commit history
-    let mut revwalk = repository.revwalk()?;
-    revwalk.push_head()?;
-
-    for commit_id in revwalk {
-        if let Err(_e) = commit_id {
-            return Err(anyhow!(format!("Could not find the commit ID while walking through the repository history for file: {:?}", file_path)));
-        }
-        let commit = repository.find_commit(commit_id.unwrap())?;
-        let tree = commit.tree()?;
-        if let Ok(entry) = tree.get_path(file_path) {
-            if entry.kind() == Some(git2::ObjectType::Blob) {
-                oids.insert(entry.id());
-            }
-        }
-    }
-    let mut blobs: Vec<GitBlob> = Vec::new();
-    for oid in oids {
-        if let Ok(blob) = repository.find_blob(oid) {
-            blobs.push(GitBlob::of(blob, file_path)?);
-        }
-    }
-    blobs.reverse();
-    return Ok(blobs);
 }
 
 pub fn stage_file(file_path: &PathBuf) -> anyhow::Result<()> {

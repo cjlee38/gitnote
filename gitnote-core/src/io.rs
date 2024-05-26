@@ -1,12 +1,13 @@
+use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::str::from_utf8;
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use git2::{DiffLine, DiffOptions, Oid, Repository};
 
-use crate::libgit::{find_all_git_blobs, find_gitnote_path, GitBlob};
+use crate::libgit::find_gitnote_path;
 use crate::note::{Message, Note};
 
 pub fn write_note(note: &Note) -> anyhow::Result<()> {
@@ -38,56 +39,49 @@ pub fn read_all_note(file_path: &PathBuf) -> anyhow::Result<Note> {
 }
 
 pub fn read_valid_note(file_path: &PathBuf) -> anyhow::Result<Note> {
-    let git_blobs = find_all_git_blobs(file_path)?;
-    if (&git_blobs).is_empty() {
-        return Err(anyhow!(format!("No blobs found for {:?}", file_path)));
-    }
-
     let all_note = read_all_note(file_path)?;
     let valid_messages: Vec<Message> = all_note.messages.into_iter()
-        .filter_map(|message| {
-            is_valid_message(&git_blobs, message, file_path)
-        }).collect();
+        .filter_map(|message| { is_valid_message(message, file_path) })
+        .collect();
     return Ok(Note::from(&all_note.id, &all_note.reference, valid_messages));
 }
 
-fn is_valid_message(git_blobs: &Vec<GitBlob>, mut message: Message, file_path: &PathBuf) -> Option<Message> {
+fn is_valid_message(mut message: Message, file_path: &PathBuf) -> Option<Message> {
     let repo = Repository::discover(".").ok()?;
-    let oid = Oid::from_str(&message.id).ok()?;
-    if let Ok(old_blob) = repo.find_blob(oid) {
-        // find in index
-        if let Some(entry) = repo.index().ok()?.get_path(file_path, 0) {
-            let new_blob = repo.find_blob(entry.id).ok()?;
-            // early return
-            if &old_blob.id() == &new_blob.id() {
-                return Some(message);
-            }
+    let old_oid = Oid::from_str(&message.id).ok()?;
+    let old_blob = repo.find_blob(old_oid).ok()?;
 
-            // now compare the blobs
-            let mut diff_model = DiffModel::of(&message);
+    let new_file = fs::read(file_path).ok()?;
+    let new_oid = repo.blob(&new_file).ok()?;
+    let new_blob = repo.find_blob(new_oid).ok()?;
 
-            let mut diff_options = DiffOptions::new();
-            diff_options.force_text(true);
-            diff_options.context_lines(0xFFFFFFF); // max context lines to ensure non-diff lines are included
-            repo.diff_blobs(
-                Some(&old_blob),
-                None,
-                Some(&new_blob),
-                None,
-                Some(&mut diff_options),
-                None,
-                None,
-                None,
-                Some(&mut |_, _, l| is_valid_line(&l, &mut diff_model)),
-            ).ok()?;
+    // early return if the blobs are the same
+    if old_oid == new_oid {
+        return Some(message);
+    }
 
-            if diff_model.valid {
-                message.line = diff_model.line;
-                message.id = git_blobs.last()?.id.clone();
-                return Some(message);
-            }
-        }
-        return None;
+    // now compare the blobs
+    let mut diff_model = DiffModel::of(&message);
+
+    let mut diff_options = DiffOptions::new();
+    diff_options.force_text(true);
+    diff_options.context_lines(0xFFFFFFF); // max context lines to ensure non-diff lines are included
+    repo.diff_blobs(
+        Some(&old_blob),
+        None,
+        Some(&new_blob),
+        None,
+        Some(&mut diff_options),
+        None,
+        None,
+        None,
+        Some(&mut |_, _, l| is_valid_line(&l, &mut diff_model)),
+    ).ok()?;
+
+    if diff_model.valid {
+        message.line = diff_model.line;
+        message.id = new_oid.to_string();
+        return Some(message);
     }
     return None;
 }
