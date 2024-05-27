@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, fs};
 use std::fs::File;
 use std::io::{Write};
 use std::path::PathBuf;
@@ -67,6 +67,14 @@ pub fn find_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
     }
 
     return Err(anyhow!("The file was not found in the repository's index or in the latest commit"));
+}
+
+pub fn find_volatile_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
+    let repository = Repository::discover(".")?;
+    let content = fs::read(file_path).context(format!("Failed to read file {:?}", file_path))?;
+    let oid = repository.blob(&content)?;
+    let blob = repository.find_blob(oid)?;
+    return GitBlob::of(blob, file_path);
 }
 
 pub fn stage_file(file_path: &PathBuf) -> anyhow::Result<()> {

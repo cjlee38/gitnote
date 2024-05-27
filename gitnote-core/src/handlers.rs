@@ -5,7 +5,7 @@ use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
 use crate::io::{read_all_note, read_or_create_note, read_valid_note, write_note};
-use crate::libgit::{find_git_blob, find_root_path, stage_file};
+use crate::libgit::{find_git_blob, find_root_path, find_volatile_git_blob, stage_file};
 use crate::note::Message;
 use crate::stdio::write_out;
 
@@ -47,9 +47,9 @@ fn resolve_path(input_path: &String) -> anyhow::Result<PathBuf> {
 pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
 
-    let blob = find_git_blob(&file_path)?;
+    let blob = find_volatile_git_blob(&file_path)?;
 
-    let note = read_valid_note(&blob.file_path)?;
+    let note = read_valid_note(&file_path)?;
     let content = &blob.content;
 
     if formatted {
