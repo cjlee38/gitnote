@@ -45,6 +45,7 @@ class GitNoteEditorFactoryListener : EditorFactoryListener {
     override fun editorReleased(event: EditorFactoryEvent) {
         val file = FileDocumentManager.getInstance().getFile(event.editor.document) ?: return
         val documentListener = registered.find { it.file.path == file.path } ?: return
+        registered.remove(documentListener)
         documentListener.dispose()
         event.editor.document.removeDocumentListener(documentListener)
     }

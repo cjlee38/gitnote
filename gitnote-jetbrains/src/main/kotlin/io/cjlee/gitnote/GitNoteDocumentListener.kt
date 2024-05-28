@@ -19,6 +19,7 @@ import io.cjlee.gitnote.core.Note
 import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
 import io.cjlee.gitnote.jcef.protocol.ProtocolMessaage
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import javax.swing.SwingUtilities
 
 
@@ -29,11 +30,9 @@ class GitNoteDocumentListener(
 ) : BulkAwareDocumentListener {
     private var note: Note
     private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
-    private val onDispose = {
-        println("onDispose from GitNoteDocumentListener")
-        SwingUtilities.invokeLater { this.reload() }
-    }
+    private val onDispose = { SwingUtilities.invokeLater { this.reload() } }
     private val executor = Executors.newSingleThreadScheduledExecutor()
+        .also { it.scheduleAtFixedRate(onDispose, 0, 10, TimeUnit.SECONDS) }
     private val debouncer = Debouncer()
 
     private val lineHighlighters = mutableSetOf<RangeHighlighterEx>()

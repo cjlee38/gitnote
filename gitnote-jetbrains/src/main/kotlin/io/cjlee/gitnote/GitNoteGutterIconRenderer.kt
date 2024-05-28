@@ -1,9 +1,9 @@
 package io.cjlee.gitnote
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.ex.DocumentEx
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.markup.GutterDraggableObject
 import com.intellij.openapi.editor.markup.GutterIconRenderer
@@ -18,7 +18,7 @@ import java.awt.image.BufferedImage
 import javax.swing.Icon
 import javax.swing.ImageIcon
 
-open class GitNoteGutterIconRenderer(
+class GitNoteGutterIconRenderer(
     val lineMessages: List<Message>,
     private val protocolHandlers: Map<String, ProtocolHandler>,
     var visible: Boolean,
