@@ -1,4 +1,3 @@
-use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
@@ -7,7 +6,7 @@ use std::str::from_utf8;
 use anyhow::Context;
 use git2::{DiffLine, DiffOptions, Oid, Repository};
 
-use crate::libgit::find_gitnote_path;
+use crate::libgit::{find_gitnote_path, find_volatile_git_blob};
 use crate::note::{Message, Note};
 
 pub fn write_note(note: &Note) -> anyhow::Result<()> {
@@ -31,11 +30,13 @@ pub fn read_all_note(file_path: &PathBuf) -> anyhow::Result<Note> {
     let id = Note::get_id(file_path)?;
     let note_path = find_note_path(&id)?;
 
-    let file = File::open(&note_path)
-        .with_context(|| format!("Cannot find the note for path: {:?}", &file_path))?;
-    let reader = BufReader::new(file);
-    let messages = serde_json::from_reader(reader)?;
-    return Ok(messages);
+    if let Ok(file) = File::open(&note_path) {
+        let reader = BufReader::new(file);
+        let messages = serde_json::from_reader(reader)?;
+        return Ok(messages);
+    }
+    let id = Note::get_id(file_path)?;
+    return Ok(Note::new(&id, file_path));
 }
 
 pub fn read_valid_note(file_path: &PathBuf) -> anyhow::Result<Note> {
@@ -51,8 +52,8 @@ fn is_valid_message(mut message: Message, file_path: &PathBuf) -> Option<Message
     let old_oid = Oid::from_str(&message.id).ok()?;
     let old_blob = repo.find_blob(old_oid).ok()?;
 
-    let new_file = fs::read(file_path).ok()?;
-    let new_oid = repo.blob(&new_file).ok()?;
+    let new_git_blob = find_volatile_git_blob(file_path).ok()?;
+    let new_oid = Oid::from_str(&new_git_blob.id).ok()?;
     let new_blob = repo.find_blob(new_oid).ok()?;
 
     // early return if the blobs are the same
@@ -107,15 +108,14 @@ impl DiffModel {
 }
 
 fn is_valid_line(line: &DiffLine, diff_model: &mut DiffModel) -> bool {
-    let old_lineno = line.old_lineno().unwrap_or(0);
-    let new_lineno = line.new_lineno().unwrap_or(0);
+    let old_lineno = line.old_lineno().unwrap_or(0xFFFFFFFF) - 1;
+    let new_lineno = line.new_lineno().unwrap_or(0xFFFFFFFF) - 1;
 
     if diff_model.fixed {
         return true;
     }
 
     if old_lineno as usize == diff_model.line {
-        line.origin();
         let content = from_utf8(line.content()).unwrap_or("");
         if diff_model.snippet != content.trim() && (line.origin() == '-' || line.origin() == '+') {
             diff_model.valid = false;

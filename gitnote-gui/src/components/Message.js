@@ -29,6 +29,7 @@ const Message = (props) => {
                 setMessageValue("");
                 setPrevMessageValue("");
                 console.log("deleteMessage got data : " + data);
+                requestToIde("window/close", {}, messageApi.error);
             }).catch((error) => {
             console.log("deleteMessage got error : " + error);
         });
@@ -47,6 +48,7 @@ const Message = (props) => {
                 // setPrevMessageValue(messageValue);
                 // setMessageValue(prevMessageValue);
                 console.log("updateMessage got data : " + data);
+                requestToIde("window/close", {}, messageApi.error);
             }).catch((error) => {
             console.log("updateMessage got error : " + error);
         });

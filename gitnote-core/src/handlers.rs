@@ -10,6 +10,7 @@ use crate::note::Message;
 use crate::stdio::write_out;
 
 pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Result<()> {
+    let line = line - 1;
     let file_path = resolve_path(&file_name)?;
     validate_file_staged(&file_path)?;
 
@@ -20,7 +21,7 @@ pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Resu
     note.append(message)?;
     write_note(&note)?;
     write_out(&format!("Successfully added comment for {:?} in range {}",
-                      &file_path, line));
+                      &file_path, line + 1));
     return Ok(());
 }
 
@@ -60,7 +61,7 @@ pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
     let messages = note.messages;
     content.iter().enumerate()
         .for_each(|(line, line_content)| {
-            let message = messages.iter().find(|m| m.line == line + 1);
+            let message = messages.iter().rev().find(|m| m.line == line);
             if let Some(found) = message {
                 let message_lines = found.message.split("\n")
                     .map(String::from)
@@ -69,7 +70,7 @@ pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
                 for (i, line) in message_lines.iter().enumerate() {
                     if i == 0 {
                         write_out(&format!("{} {} {} ",
-                                           found.line.to_string().yellow(),
+                                           (found.line + 1).to_string().yellow(),
                                            found.snippet,
                                            line.red())
                         );
@@ -90,6 +91,7 @@ pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
 }
 
 pub fn edit_note(file_name: String, line: usize, message: String) -> anyhow::Result<()> {
+    let line = line - 1;
     let file_path = resolve_path(&file_name)?;
     validate_file_staged(&file_path)?;
 
@@ -104,6 +106,7 @@ pub fn edit_note(file_name: String, line: usize, message: String) -> anyhow::Res
 }
 
 pub fn delete_note(file_name: String, line: usize) -> anyhow::Result<()> {
+    let line = line - 1;
     let file_path = resolve_path(&file_name)?;
 
     let mut note = read_all_note(&file_path)?;

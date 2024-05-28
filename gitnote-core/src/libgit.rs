@@ -42,7 +42,7 @@ pub fn find_root_path() -> anyhow::Result<PathBuf> {
 pub fn find_gitnote_path() -> anyhow::Result<PathBuf> {
     let path = find_root_path()?.join(PathBuf::from(".git/notes"));
     if !path.try_exists().context("Failed to access the git-note path; check directory permissions.")? {
-        std::fs::create_dir(&path).context("Failed to create git-note path; check directory permissions.")?;
+        fs::create_dir(&path).context("Failed to create git-note path; check directory permissions.")?;
         let mut description = File::create(&path.join("description"))?;
         description.write_all("This directory contains notes by `git-note`".as_bytes())?;
     }
@@ -71,7 +71,8 @@ pub fn find_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
 
 pub fn find_volatile_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
     let repository = Repository::discover(".")?;
-    let content = fs::read(file_path).context(format!("Failed to read file {:?}", file_path))?;
+    let path = repository.path().parent().unwrap().join(file_path);
+    let content = fs::read(&path).context(format!("Failed to read file {:?}", &path))?;
     let oid = repository.blob(&content)?;
     let blob = repository.find_blob(oid)?;
     return GitBlob::of(blob, file_path);

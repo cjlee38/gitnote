@@ -4,15 +4,14 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.convertValue
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.BulkAwareDocumentListener
-import com.intellij.openapi.editor.event.EditorMouseEvent
-import com.intellij.openapi.editor.event.EditorMouseMotionListener
-import com.intellij.openapi.editor.ex.EditorGutterComponentEx
-import com.intellij.openapi.editor.markup.GutterIconRenderer
-import com.intellij.openapi.editor.markup.MarkupModel
-import com.intellij.openapi.editor.markup.RangeHighlighter
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.editor.markup.HighlighterLayer
+import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
 import io.cjlee.gitnote.core.CoreHandler
@@ -20,75 +19,130 @@ import io.cjlee.gitnote.core.Note
 import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
 import io.cjlee.gitnote.jcef.protocol.ProtocolMessaage
 import java.util.concurrent.Executors
+import javax.swing.SwingUtilities
 
 
 class GitNoteDocumentListener(
-    private val editor: Editor,
+    private val editor: EditorEx,
     private val handler: CoreHandler,
     val file: VirtualFile
-) : BulkAwareDocumentListener.Simple {
-    private var note: Note? = null
-    private val markupModelCache = MarkupModelCache(editor.markupModel)
+) : BulkAwareDocumentListener {
+    private var note: Note
     private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
-    private lateinit var document: Document
     private val onDispose = {
-        ApplicationManager.getApplication().invokeLater { this.refreshGutter(force = true) }
+        println("onDispose from GitNoteDocumentListener")
+        SwingUtilities.invokeLater { this.reload() }
     }
-    private val debouncer = Debouncer()
     private val executor = Executors.newSingleThreadScheduledExecutor()
+    private val debouncer = Debouncer()
+
+    private val lineHighlighters = mutableSetOf<RangeHighlighterEx>()
 
     init {
-        refreshGutter(force = true)
-        setupHoverIcon()
-        executor.scheduleWithFixedDelay({ refreshGutter(force = true) }, 1, 1, java.util.concurrent.TimeUnit.SECONDS)
+        this.note = handler.read(file.path, force = true) ?: throw IllegalStateException("no note")
+        addNoteMessageIcons(editor.document)
+        addEmptyMessageIcons(editor.document)
+
+        val iconVisibility = IconVisibility(lineHighlighters)
+        editor.addEditorMouseListener(iconVisibility)
+        editor.addEditorMouseMotionListener(iconVisibility)
     }
 
     // TODO : bulk aware doesn't work as expected now, so here I implmeneted a very simple debouncer.
     //   If bulk aware works somehow, I can remove this debouncer, or even though coroutine might helps to handle this.
     class Debouncer {
         private var lastRun = 0L
-        private val delay = 1000L
-
+        private val delay = 100L
         fun passed(): Boolean {
             val now = System.currentTimeMillis()
             return (now - lastRun > delay).also { if (it) lastRun = now }
         }
     }
 
-    fun dispose() {
-        executor.shutdown()
-        markupModelCache.removeAllIcons()
-    }
-
-    override fun afterDocumentChange(document: Document) {
-        val manager = FileDocumentManager.getInstance()
-        if (manager.isDocumentUnsaved(document)) {
-            manager.saveDocument(document)
-        }
-        val force = debouncer.passed()
-        refreshGutter(force)
-    }
-
-    private fun refreshGutter(force: Boolean) {
-        handler.read(file.path)?.let {
-            this.note = handler.read(file.path, force)
-            markupModelCache.removeAllIcons()
-            addMessageIcons()
-        }
-    }
-
-    private fun addMessageIcons() {
-        note?.let { note ->
-            note.messages
-                .groupBy { it.line }
-                .forEach { (line, messages) ->
-                    try {
-                        println("addMessageIcons : $line")
-                        val protocolHandlers = createProtocolHandlers(file.path, line)
-                        markupModelCache.addIcon(line - 1, GitNoteGutterIconRenderer(messages, protocolHandlers))
-                    } catch (ignore: Exception) {
-                    }
+    override fun documentChanged(event: DocumentEvent) {
+        val passed = debouncer.passed()
+        if (passed) {
+            ApplicationManager.getApplication().invokeLater {
+                WriteCommandAction.runWriteCommandAction(editor.project) {
+                    FileDocumentManager.getInstance().saveDocument(event.document)
                 }
+            }
+            handler.read(file.path, force = true)?.let { note = it }
+            addNoteMessageIcons(event.document)
+        }
+        addEmptyMessageIcons(event.document)
+    }
+
+    private fun reload() {
+        this.note = handler.read(file.path, force = true) ?: throw IllegalStateException("no note")
+        addNoteMessageIcons(editor.document)
+        addEmptyMessageIcons(editor.document)
+    }
+
+    private fun addNoteMessageIcons(document: Document) {
+        lineHighlighters.clear()
+        editor.markupModel.removeAllHighlighters()
+
+        val noteLineMessages = note.messages.groupBy { it.line }
+        (0 until document.lineCount).forEach { line ->
+            val start = editor.document.getLineStartOffset(line)
+            val end = editor.document.getLineEndOffset(line)
+
+            val lineMessages = noteLineMessages[line]
+            val protocolHandlers = createProtocolHandlers(file.path, line)
+            editor.markupModel.addRangeHighlighterAndChangeAttributes(
+                null,
+                start,
+                end,
+                HighlighterLayer.LAST,
+                HighlighterTargetArea.EXACT_RANGE,
+                false
+            ) { highlighter ->
+                val gitNoteGutterIconRenderer = GitNoteGutterIconRenderer(
+                    lineMessages = lineMessages ?: emptyList(),
+                    protocolHandlers = protocolHandlers,
+                    visible = lineMessages != null,
+                    highlighter = highlighter,
+                    document = document
+                )
+                highlighter.gutterIconRenderer = gitNoteGutterIconRenderer
+            }.also { highlighter -> lineHighlighters.add(highlighter) }
+        }
+    }
+
+    private fun addEmptyMessageIcons(document: Document) {
+        val renderersByHasMessage = lineHighlighters.map { it.gutterIconRenderer as GitNoteGutterIconRenderer }
+            .filter { !it.hasMessage }
+        renderersByHasMessage.forEach {
+            lineHighlighters.remove(it.highlighter)
+            editor.markupModel.removeHighlighter(it.highlighter)
+        }
+
+        (0 until document.lineCount).forEach { line ->
+            val start = editor.document.getLineStartOffset(line)
+            val end = editor.document.getLineEndOffset(line)
+
+            if (lineHighlighters.any { (it.gutterIconRenderer as GitNoteGutterIconRenderer).line == line }) {
+                return@forEach
+            }
+
+            val protocolHandlers = createProtocolHandlers(file.path, line)
+            editor.markupModel.addRangeHighlighterAndChangeAttributes(
+                null,
+                start,
+                end,
+                HighlighterLayer.LAST,
+                HighlighterTargetArea.EXACT_RANGE,
+                false
+            ) { highlighter ->
+                highlighter.gutterIconRenderer = GitNoteGutterIconRenderer(
+                    lineMessages = emptyList(),
+                    protocolHandlers = protocolHandlers,
+                    visible = false,
+                    highlighter = highlighter,
+                    document = document
+                )
+            }.also { highlighter -> lineHighlighters.add(highlighter) }
         }
     }
 
@@ -104,21 +158,23 @@ class GitNoteDocumentListener(
             },
             "messages/upsert" to object : ProtocolHandler {
                 override fun handle(data: Any?): ProtocolHandler.Response {
-                    val message = mapper.convertValue<ProtocolMessaage>(data!!)
-                    if (message.message.isEmpty()) {
-                        handler.delete(filePath, message.line)
+                    val protocolMessaage = mapper.convertValue<ProtocolMessaage>(data!!)
+
+                    if (protocolMessaage.message.isEmpty()) {
+                        handler.delete(filePath, protocolMessaage.line)
+                        return ProtocolHandler.Response()
                     }
-                    val addResponse = handler.add(filePath, message.line, message.message)
-                    if (addResponse.isSuccess) {
+
+                    val response = if (handler.readMessages(filePath, protocolMessaage.line).isEmpty()) {
+                        handler.add(filePath, protocolMessaage.line, protocolMessaage.message)
+                    } else {
+                        handler.update(filePath, protocolMessaage.line, protocolMessaage.message)
+                    }
+                    if (response.isSuccess) {
                         onDispose()
                         return ProtocolHandler.Response()
                     }
-                    val updateResponse = handler.update(filePath, message.line, message.message)
-                    if (updateResponse.isSuccess) {
-                        onDispose()
-                        return ProtocolHandler.Response()
-                    }
-                    return ProtocolHandler.Response(error = "Failed to add or update message : ${updateResponse.text}")
+                    return ProtocolHandler.Response(error = "Failed to add or update message : ${response.text}")
                 }
             },
             "messages/delete" to object : ProtocolHandler {
@@ -135,42 +191,8 @@ class GitNoteDocumentListener(
         )
     }
 
-    private fun setupHoverIcon() {
-        editor.addEditorMouseMotionListener(object : EditorMouseMotionListener {
-            var prevLine = -1
-            var currentHighlighter: RangeHighlighter? = null
-
-            override fun mouseMoved(e: EditorMouseEvent) {
-                val gutterComponent = editor.gutter as EditorGutterComponentEx
-                val gutterBounds = gutterComponent.bounds
-                val mouseEvent = e.mouseEvent
-
-                if (currentHighlighter != null && prevLine != -1) {
-                    markupModelCache.removeIcon(prevLine, currentHighlighter)
-                    currentHighlighter = null
-                }
-
-                // Check if mouse is over the gutter area
-                if (mouseEvent.x > gutterBounds.width) {
-                    return
-                }
-
-                val line = editor.xyToLogicalPosition(mouseEvent.point).line + 1
-                if (markupModelCache.contains(line)) {
-                    return
-                }
-
-                try {
-                    prevLine = line - 1
-                    currentHighlighter = markupModelCache.addIcon(
-                        line - 1,
-                        AddGitNoteGutterIconRenderer(line, createProtocolHandlers(file.path, line))
-                    )
-                } catch (ignore: Exception) {
-                }
-            }
-
-        })
+    fun dispose() {
+        executor.shutdown()
     }
 
     override fun equals(other: Any?): Boolean {
@@ -179,36 +201,5 @@ class GitNoteDocumentListener(
 
     override fun hashCode(): Int {
         return 31 * file.path.hashCode()
-    }
-
-    class MarkupModelCache(private val markupModel: MarkupModel) {
-        private val highlighters = mutableMapOf<Int, RangeHighlighter>()
-
-        fun addIcon(line: Int, gutterIconRenderer: GutterIconRenderer?): RangeHighlighter? {
-            if (contains(line)) {
-                return null
-            }
-            val highlighter = markupModel.addLineHighlighter(null, line, 0)
-            highlighter.gutterIconRenderer = gutterIconRenderer
-            highlighters[line] = highlighter
-            return highlighter
-        }
-
-        fun removeAllIcons() {
-            markupModel.removeAllHighlighters()
-            highlighters.clear()
-        }
-
-        fun removeIcon(line: Int, prev: RangeHighlighter? = null) {
-            val highlighter = highlighters[line] ?: return
-            if (prev != null && prev == highlighter) {
-                markupModel.removeHighlighter(highlighter)
-                highlighters.remove(line)
-            }
-        }
-
-        fun contains(line: Int): Boolean {
-            return highlighters.containsKey(line)
-        }
     }
 }

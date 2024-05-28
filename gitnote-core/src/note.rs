@@ -85,7 +85,7 @@ impl Message {
     pub fn new(blob: &GitBlob, line: usize, message: String) -> anyhow::Result<Self> {
         let snippet = blob
             .content
-            .get(line - 1)
+            .get(line)
             .with_context(|| {
                 format!("specified line({}) extends limit for file {:?}", line, &blob.file_path)
             })?.to_string();

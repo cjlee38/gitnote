@@ -15,7 +15,7 @@ class ProtocolFrontHandler(
     private val handlers = handlers.toMutableMap()
 
     override fun apply(input: String): Response {
-        println("received data from webview : $input")
+        println("received data from webview : $input thread = ${Thread.currentThread()}")
         val protocol = mapper.readValue<Protocol>(input)
         val handler = handlers[protocol.type] ?: object : ProtocolHandler {
             override fun handle(data: Any?): ProtocolHandler.Response {
@@ -23,8 +23,10 @@ class ProtocolFrontHandler(
             }
         }
         val payload = handler.handle(protocol.payload)
+        if (!webView.isDisposed) {
+            sendToWebView(protocol.type, payload, protocol.id)
+        }
         // TODO : For now, manually response to webview by executing javascript
-        sendToWebView(protocol.type, payload, protocol.id)
         return Response("")
     }
 
