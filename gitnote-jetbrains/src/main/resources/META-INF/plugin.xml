@@ -27,6 +27,6 @@
         </component>
     </application-components>
     <extensions defaultExtensionNs="com.intellij">
-        <projectService id="CatViewerWindowService" serviceImplementation="io.cjlee.gitnote.jcef.JcefViewerWindowService"/>
+        <projectService id="JcefViewerWindowService" serviceImplementation="io.cjlee.gitnote.jcef.JcefViewerWindowService"/>
     </extensions>
 </idea-plugin>

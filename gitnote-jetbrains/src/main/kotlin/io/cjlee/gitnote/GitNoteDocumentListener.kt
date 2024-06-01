@@ -3,8 +3,6 @@ package io.cjlee.gitnote
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.convertValue
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.BulkAwareDocumentListener
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -14,12 +12,12 @@ import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.util.ui.update.MergingUpdateQueue
+import com.intellij.util.ui.update.Update
 import io.cjlee.gitnote.core.CoreHandler
 import io.cjlee.gitnote.core.Note
 import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
 import io.cjlee.gitnote.jcef.protocol.ProtocolMessaage
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import javax.swing.SwingUtilities
 
 
@@ -31,9 +29,7 @@ class GitNoteDocumentListener(
     private var note: Note
     private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
     private val onDispose = { SwingUtilities.invokeLater { this.reload() } }
-    private val executor = Executors.newSingleThreadScheduledExecutor()
-        .also { it.scheduleAtFixedRate(onDispose, 0, 10, TimeUnit.SECONDS) }
-    private val debouncer = Debouncer()
+    private val queue = MergingUpdateQueue("GitNoteQueue", 100, true, null)
 
     private val lineHighlighters = mutableSetOf<RangeHighlighterEx>()
 
@@ -47,28 +43,12 @@ class GitNoteDocumentListener(
         editor.addEditorMouseMotionListener(iconVisibility)
     }
 
-    // TODO : bulk aware doesn't work as expected now, so here I implmeneted a very simple debouncer.
-    //   If bulk aware works somehow, I can remove this debouncer, or even though coroutine might helps to handle this.
-    class Debouncer {
-        private var lastRun = 0L
-        private val delay = 100L
-        fun passed(): Boolean {
-            val now = System.currentTimeMillis()
-            return (now - lastRun > delay).also { if (it) lastRun = now }
-        }
-    }
-
     override fun documentChanged(event: DocumentEvent) {
-        val passed = debouncer.passed()
-        if (passed) {
-            ApplicationManager.getApplication().invokeLater {
-                WriteCommandAction.runWriteCommandAction(editor.project) {
-                    FileDocumentManager.getInstance().saveDocument(event.document)
-                }
+        queue.queue(object : Update("identity") {
+            override fun run() {
+                FileDocumentManager.getInstance().saveDocument(event.document)
             }
-            handler.read(file.path, force = true)?.let { note = it }
-            addNoteMessageIcons(event.document)
-        }
+        })
         addEmptyMessageIcons(event.document)
     }
 
@@ -183,7 +163,7 @@ class GitNoteDocumentListener(
                         onDispose()
                         return ProtocolHandler.Response()
                     }
-                    return ProtocolHandler.Response(error = "Failed to add or update message : ${response.text}")
+                    return ProtocolHandler.Response(error = "Failed to update message : ${response.text}")
                 }
             },
             "messages/delete" to object : ProtocolHandler {
@@ -198,10 +178,6 @@ class GitNoteDocumentListener(
                 }
             },
         )
-    }
-
-    fun dispose() {
-        executor.shutdown()
     }
 
     override fun equals(other: Any?): Boolean {

@@ -17,7 +17,6 @@ class IconVisibility(
 
     private fun doUpdate(editor: Editor, line: Int) {
         highlighters.mapNotNull { it.gutterIconRenderer as? GitNoteGutterIconRenderer }.forEach {
-//            println("message.line = ${it.line}, line = $line, prev-visible = ${it.visible} -> visible = ${it.line == line}")
             val visible = it.line == line
             val needUpdate = it.visible != visible && !it.hasMessage
             if (needUpdate) {
