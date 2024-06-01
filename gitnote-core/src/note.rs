@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::libgit::GitBlob;
 use crate::utils::PathBufExt;
@@ -46,20 +47,7 @@ impl Note {
         return Ok(());
     }
 
-    pub fn edit(&mut self, new_message: Message) {
-        if let Some((index, _)) = self.find_message_indexed(new_message.line) {
-            self.messages.remove(index);
-            self.messages.push(new_message);
-        }
-    }
-
-    pub fn delete(&mut self, line: usize) {
-        if let Some((index, _)) = self.find_message_indexed(line) {
-            self.messages.remove(index);
-        }
-    }
-
-    fn find_message_indexed(&self, line: usize) -> Option<(usize, &Message)> {
+    pub fn find_message_indexed(&self, line: usize) -> Option<(usize, &Message)> {
         let len = self.messages.len();
         for index in 0..len {
             let message = &self.messages[index];
@@ -73,12 +61,15 @@ impl Note {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
-    pub id: String,
+    pub uuid: String,
+    pub oid: String,
     pub line: usize,
     pub snippet: String,
     pub message: String,
     #[serde(with = "datetime")]
-    created_at: DateTime<Utc>,
+    created_at: DateTime<Local>,
+    #[serde(with = "datetime")]
+    pub updated_at: DateTime<Local>,
 }
 
 impl Message {
@@ -91,20 +82,22 @@ impl Message {
             })?.to_string();
 
         Ok(Message {
-            id: blob.id.to_string(),
+            uuid: Uuid::new_v4().to_string(),
+            oid: blob.id.to_string(),
             line,
             snippet,
             message,
-            created_at: Utc::now(),
+            created_at: Local::now(),
+            updated_at: Local::now(),
         })
     }
 }
 
 mod datetime {
-    use chrono::{DateTime, SecondsFormat, Utc};
+    use chrono::{DateTime, Local, SecondsFormat};
     use serde::{self, Deserialize, Deserializer, Serializer};
 
-    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(date: &DateTime<Local>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -112,13 +105,13 @@ mod datetime {
         serializer.serialize_str(&s)
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Local>, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
         DateTime::parse_from_rfc3339(&s)
-            .map(|dt| dt.with_timezone(&Utc))
+            .map(|dt| dt.with_timezone(&Local))
             .map_err(serde::de::Error::custom)
     }
 }

@@ -95,22 +95,45 @@ pub fn edit_note(file_name: String, line: usize, message: String) -> anyhow::Res
     let file_path = resolve_path(&file_name)?;
     validate_file_staged(&file_path)?;
 
-    let blob = find_git_blob(&file_path)?;
+    let mut actual_note = read_all_note(&file_path)?;
+    let view_note = read_valid_note(&file_path)?;
 
-    let mut note = read_all_note(&file_path)?;
-    let message = Message::new(&blob, line, message)?;
-    note.edit(message);
+    return if let Some((_, message_found)) = view_note.find_message_indexed(line) {
+        let uuid = &message_found.uuid;
+        for message_to_update in &mut actual_note.messages {
+            if message_to_update.uuid == *uuid {
+                message_to_update.message = message.clone();
+                message_to_update.updated_at = chrono::Local::now();
+            }
+        }
 
-    write_note(&note)?;
-    return Ok(());
+        write_note(&actual_note)?;
+        Ok(())
+    } else {
+        Err(anyhow!(format!(
+            "no comment found for line {} in {:?}. consider to use `add` instead.", line + 1, &file_path
+        )))
+    }
 }
 
 pub fn delete_note(file_name: String, line: usize) -> anyhow::Result<()> {
     let line = line - 1;
     let file_path = resolve_path(&file_name)?;
+    validate_file_staged(&file_path)?;
 
-    let mut note = read_all_note(&file_path)?;
-    note.delete(line);
-    write_note(&note)?;
-    return Ok(());
+    let mut actual_note = read_all_note(&file_path)?;
+    let view_note = read_valid_note(&file_path)?;
+
+    return if let Some((_, message_found)) = view_note.find_message_indexed(line) {
+        let uuid = &message_found.uuid;
+        let x: Vec<Message> = actual_note.messages.into_iter()
+            .filter(|m| m.uuid != *uuid)
+            .collect();
+        actual_note.messages = x;
+
+        write_note(&actual_note)?;
+        Ok(())
+    } else {
+        Err(anyhow!(format!("no comment found for line {} in {:?}", line + 1, &file_path)))
+    }
 }

@@ -49,7 +49,7 @@ pub fn read_valid_note(file_path: &PathBuf) -> anyhow::Result<Note> {
 
 fn is_valid_message(mut message: Message, file_path: &PathBuf) -> Option<Message> {
     let repo = Repository::discover(".").ok()?;
-    let old_oid = Oid::from_str(&message.id).ok()?;
+    let old_oid = Oid::from_str(&message.oid).ok()?;
     let old_blob = repo.find_blob(old_oid).ok()?;
 
     let new_git_blob = find_volatile_git_blob(file_path).ok()?;
@@ -81,7 +81,7 @@ fn is_valid_message(mut message: Message, file_path: &PathBuf) -> Option<Message
 
     if diff_model.valid {
         message.line = diff_model.line;
-        message.id = new_oid.to_string();
+        message.oid = new_oid.to_string();
         return Some(message);
     }
     return None;
