@@ -33,17 +33,7 @@ impl Note {
     }
 
     pub fn append(&mut self, message: Message) -> anyhow::Result<()> {
-        self.validate_line_distinct(&message)?;
         self.messages.push(message);
-        return Ok(());
-    }
-
-    fn validate_line_distinct(&self, message: &Message) -> anyhow::Result<()> {
-        if let Some(_) = self.find_message_indexed(message.line) {
-            return Err(anyhow!(format!(
-                "{} line duplicated. consider to use `edit` instead.", message.line
-            )));
-        }
         return Ok(());
     }
 

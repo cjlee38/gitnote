@@ -17,7 +17,7 @@ pub fn write_note(note: &Note) -> anyhow::Result<()> {
 }
 
 pub fn read_or_create_note(file_path: &PathBuf) -> anyhow::Result<Note> {
-    if let Ok(note) = read_all_note(file_path) {
+    if let Ok(note) = read_actual_note(file_path) {
         return Ok(note);
     }
     let id = Note::get_id(file_path)?;
@@ -26,7 +26,7 @@ pub fn read_or_create_note(file_path: &PathBuf) -> anyhow::Result<Note> {
     return Ok(new);
 }
 
-pub fn read_all_note(file_path: &PathBuf) -> anyhow::Result<Note> {
+pub fn read_actual_note(file_path: &PathBuf) -> anyhow::Result<Note> {
     let id = Note::get_id(file_path)?;
     let note_path = find_note_path(&id)?;
 
@@ -39,8 +39,8 @@ pub fn read_all_note(file_path: &PathBuf) -> anyhow::Result<Note> {
     return Ok(Note::new(&id, file_path));
 }
 
-pub fn read_valid_note(file_path: &PathBuf) -> anyhow::Result<Note> {
-    let all_note = read_all_note(file_path)?;
+pub fn read_opaque_note(file_path: &PathBuf) -> anyhow::Result<Note> {
+    let all_note = read_actual_note(file_path)?;
     let valid_messages: Vec<Message> = all_note.messages.into_iter()
         .filter_map(|message| { is_valid_message(message, file_path) })
         .collect();

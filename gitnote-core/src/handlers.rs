@@ -4,8 +4,8 @@ use anyhow::{anyhow, Context};
 use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
-use crate::io::{read_all_note, read_or_create_note, read_valid_note, write_note};
-use crate::libgit::{find_git_blob, find_root_path, find_volatile_git_blob, stage_file};
+use crate::io::{read_actual_note, read_or_create_note, read_opaque_note, write_note};
+use crate::libgit::{find_root_path, find_volatile_git_blob, stage_file};
 use crate::note::Message;
 use crate::stdio::write_out;
 
@@ -14,9 +14,15 @@ pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Resu
     let file_path = resolve_path(&file_name)?;
     validate_file_staged(&file_path)?;
 
-    let blob = find_git_blob(&file_path)?;
-
     let mut note = read_or_create_note(&file_path)?;
+    let opaque_note = read_opaque_note(&file_path)?;
+    if opaque_note.find_message_indexed(line).is_some() {
+        return Err(anyhow!(format!(
+            "comment already exists for line {} in {:?}. consider to use `edit` instead.", line + 1, &file_path
+        )));
+    }
+
+    let blob = find_volatile_git_blob(&file_path)?;
     let message = Message::new(&blob, line, message)?;
     note.append(message)?;
     write_note(&note)?;
@@ -50,7 +56,7 @@ pub fn read_notes(file_name: String, formatted: bool) -> anyhow::Result<()> {
 
     let blob = find_volatile_git_blob(&file_path)?;
 
-    let note = read_valid_note(&file_path)?;
+    let note = read_opaque_note(&file_path)?;
     let content = &blob.content;
 
     if formatted {
@@ -95,8 +101,8 @@ pub fn edit_note(file_name: String, line: usize, message: String) -> anyhow::Res
     let file_path = resolve_path(&file_name)?;
     validate_file_staged(&file_path)?;
 
-    let mut actual_note = read_all_note(&file_path)?;
-    let view_note = read_valid_note(&file_path)?;
+    let mut actual_note = read_actual_note(&file_path)?;
+    let view_note = read_opaque_note(&file_path)?;
 
     return if let Some((_, message_found)) = view_note.find_message_indexed(line) {
         let uuid = &message_found.uuid;
@@ -121,8 +127,8 @@ pub fn delete_note(file_name: String, line: usize) -> anyhow::Result<()> {
     let file_path = resolve_path(&file_name)?;
     validate_file_staged(&file_path)?;
 
-    let mut actual_note = read_all_note(&file_path)?;
-    let view_note = read_valid_note(&file_path)?;
+    let mut actual_note = read_actual_note(&file_path)?;
+    let view_note = read_opaque_note(&file_path)?;
 
     return if let Some((_, message_found)) = view_note.find_message_indexed(line) {
         let uuid = &message_found.uuid;
