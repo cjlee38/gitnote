@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context};
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -67,9 +67,9 @@ pub struct Message {
     pub snippet: String,
     pub message: String,
     #[serde(with = "datetime")]
-    created_at: DateTime<Local>,
+    created_at: DateTime<Utc>,
     #[serde(with = "datetime")]
-    pub updated_at: DateTime<Local>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl Message {
@@ -87,17 +87,17 @@ impl Message {
             line,
             snippet,
             message,
-            created_at: Local::now(),
-            updated_at: Local::now(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
         })
     }
 }
 
 mod datetime {
-    use chrono::{DateTime, Local, SecondsFormat};
+    use chrono::{DateTime, SecondsFormat, Utc};
     use serde::{self, Deserialize, Deserializer, Serializer};
 
-    pub fn serialize<S>(date: &DateTime<Local>, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -105,13 +105,13 @@ mod datetime {
         serializer.serialize_str(&s)
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Local>, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
         DateTime::parse_from_rfc3339(&s)
-            .map(|dt| dt.with_timezone(&Local))
+            .map(|dt| dt.with_timezone(&Utc))
             .map_err(serde::de::Error::custom)
     }
 }

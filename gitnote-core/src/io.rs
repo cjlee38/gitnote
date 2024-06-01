@@ -117,7 +117,7 @@ fn is_valid_line(line: &DiffLine, diff_model: &mut DiffModel) -> bool {
 
     if old_lineno as usize == diff_model.line {
         let content = from_utf8(line.content()).unwrap_or("");
-        if diff_model.snippet != content.trim() && (line.origin() == '-' || line.origin() == '+') {
+        if diff_model.snippet.trim() != content.trim() || (line.origin() == '-' || line.origin() == '+') {
             diff_model.valid = false;
         } else {
             diff_model.line = new_lineno as usize;

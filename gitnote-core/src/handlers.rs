@@ -103,7 +103,7 @@ pub fn edit_note(file_name: String, line: usize, message: String) -> anyhow::Res
         for message_to_update in &mut actual_note.messages {
             if message_to_update.uuid == *uuid {
                 message_to_update.message = message.clone();
-                message_to_update.updated_at = chrono::Local::now();
+                message_to_update.updated_at = chrono::Utc::now();
             }
         }
 
