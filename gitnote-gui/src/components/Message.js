@@ -42,16 +42,23 @@ const Message = (props) => {
             message: messageValue,
             line: message.line
         }
-        requestToIde("messages/upsert", requestBody, messageApi.error)
-            .then((data) => {
-                props.reload();
-                // setPrevMessageValue(messageValue);
-                // setMessageValue(prevMessageValue);
-                console.log("updateMessage got data : " + data);
-                requestToIde("window/close", {}, messageApi.error);
-            }).catch((error) => {
-            console.log("updateMessage got error : " + error);
-        });
+        if (prevMessageValue) {
+            requestToIde("messages/update", requestBody, messageApi.error)
+                .then((data) => {
+                    console.log("updateMessage got data : " + data);
+                    requestToIde("window/close", {}, messageApi.error);
+                }).catch((error) => {
+                console.log("updateMessage got error : " + error);
+            });
+        } else {
+            requestToIde("messages/insert", requestBody, messageApi.error)
+                .then((data) => {
+                    console.log("insertMessage got data : " + data);
+                    requestToIde("window/close", {}, messageApi.error);
+                }).catch((error) => {
+                console.log("insertMessage got error : " + error);
+            });
+        }
     }
 
     const handleCancelClick = () => {

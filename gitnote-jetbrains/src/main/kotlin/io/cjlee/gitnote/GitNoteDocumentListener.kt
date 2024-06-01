@@ -155,20 +155,30 @@ class GitNoteDocumentListener(
                     return ProtocolHandler.Response(messages)
                 }
             },
-            "messages/upsert" to object : ProtocolHandler {
+            "messages/insert" to object : ProtocolHandler {
                 override fun handle(data: Any?): ProtocolHandler.Response {
-                    val protocolMessaage = mapper.convertValue<ProtocolMessaage>(data!!)
-
-                    if (protocolMessaage.message.isEmpty()) {
-                        handler.delete(filePath, protocolMessaage.line)
+                    val protocolMessage = mapper.convertValue<ProtocolMessaage>(data!!)
+                    if (protocolMessage.message.isEmpty()) {
+                        handler.delete(filePath, protocolMessage.line)
+                        return ProtocolHandler.Response()
+                    }
+                    val response = handler.add(filePath, protocolMessage.line, protocolMessage.message)
+                    if (response.isSuccess) {
+                        onDispose()
+                        return ProtocolHandler.Response()
+                    }
+                    return ProtocolHandler.Response(error = "Failed to add message : ${response.text}")
+                }
+            },
+            "messages/update" to object : ProtocolHandler {
+                override fun handle(data: Any?): ProtocolHandler.Response {
+                    val protocolMessage = mapper.convertValue<ProtocolMessaage>(data!!)
+                    if (protocolMessage.message.isEmpty()) {
+                        handler.delete(filePath, protocolMessage.line)
                         return ProtocolHandler.Response()
                     }
 
-                    val response = if (handler.readMessages(filePath, protocolMessaage.line).isEmpty()) {
-                        handler.add(filePath, protocolMessaage.line, protocolMessaage.message)
-                    } else {
-                        handler.update(filePath, protocolMessaage.line, protocolMessaage.message)
-                    }
+                    val response = handler.update(filePath, protocolMessage.line, protocolMessage.message)
                     if (response.isSuccess) {
                         onDispose()
                         return ProtocolHandler.Response()
