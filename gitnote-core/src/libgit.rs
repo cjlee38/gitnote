@@ -1,11 +1,10 @@
-use std::env;
+use std::{env, fs};
 use std::fs::File;
-use std::io::Write;
+use std::io::{Write};
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context};
 use git2::{Blob, Repository};
-use linked_hash_set::LinkedHashSet;
 
 #[derive(Debug)]
 pub struct GitBlob {
@@ -43,78 +42,31 @@ pub fn find_root_path() -> anyhow::Result<PathBuf> {
 pub fn find_gitnote_path() -> anyhow::Result<PathBuf> {
     let path = find_root_path()?.join(PathBuf::from(".git/notes"));
     if !path.try_exists().context("Failed to access the git-note path; check directory permissions.")? {
-        std::fs::create_dir(&path).context("Failed to create git-note path; check directory permissions.")?;
+        fs::create_dir(&path).context("Failed to create git-note path; check directory permissions.")?;
         let mut description = File::create(&path.join("description"))?;
         description.write_all("This directory contains notes by `git-note`".as_bytes())?;
     }
     return Ok(path);
 }
 
-pub fn find_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
+pub fn find_volatile_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
     let repository = Repository::discover(".")?;
-
-    // Check index first
-    let index = repository.index()?;
-    if let Some(entry) = index.get_path(file_path, 0) {
-        let blob = repository.find_blob(entry.id)?;
-        return GitBlob::of(blob, file_path);
-    }
-
-    // If not found in index, check HEAD commit
-    let head = repository.head()?.resolve()?.peel_to_commit()?;
-    let object = head.tree()?.get_path(file_path)?.to_object(&repository)?;
-    if let Some(blob) = object.as_blob() {
-        return GitBlob::of(blob.clone(), file_path)
-    }
-
-    return Err(anyhow!("The file was not found in the repository's index or in the latest commit"));
-}
-
-// TODO : It only returns the blobs which contained in commits.
-//   There could be several ways to handle this problem...
-//   1) Notify user that the file is in dangling state.
-//   2) Find the blob any how -> Might to lead loss of data
-pub fn find_all_git_blobs(file_path:&PathBuf) -> anyhow::Result<Vec<GitBlob>> {
-    let repository = Repository::discover(".")?;
-    let mut oids = LinkedHashSet::new();
-
-    // find in index
-    let index = repository.index()?;
-    if let Some(entry) = index.get_path(file_path, 0) {
-        let blob = repository.find_blob(entry.id)?;
-        oids.insert(blob.id());
-    }
-
-    // find in commit history
-    let mut revwalk = repository.revwalk()?;
-    revwalk.push_head()?;
-
-    for commit_id in revwalk {
-        if let Err(_e) = commit_id {
-            return Err(anyhow!(format!("Could not find the commit ID while walking through the repository history for file: {:?}", file_path)));
-        }
-        let commit = repository.find_commit(commit_id.unwrap())?;
-        let tree = commit.tree()?;
-        if let Ok(entry) = tree.get_path(file_path) {
-            if entry.kind() == Some(git2::ObjectType::Blob) {
-                oids.insert(entry.id());
-            }
-        }
-    }
-    let mut blobs: Vec<GitBlob> = Vec::new();
-    for oid in oids {
-        if let Ok(blob) = repository.find_blob(oid) {
-            blobs.push(GitBlob::of(blob, file_path)?);
-        }
-    }
-    blobs.reverse();
-    return Ok(blobs);
+    let path = repository.path().parent().unwrap().join(file_path);
+    let content = fs::read(&path).context(format!("Failed to read file {:?}", &path))?;
+    let oid = repository.blob(&content)?;
+    let blob = repository.find_blob(oid)?;
+    return GitBlob::of(blob, file_path);
 }
 
 pub fn stage_file(file_path: &PathBuf) -> anyhow::Result<()> {
     let repository = Repository::discover(".")?;
 
+    if repository.status_file(file_path)?.is_ignored() {
+        return Err(anyhow!("The file {:?} is ignored", file_path));
+    }
+
     let mut index = repository.index()?;
+    index.read(true)?;
     index.add_path(file_path)?;
     index.write()?;
     Ok(())

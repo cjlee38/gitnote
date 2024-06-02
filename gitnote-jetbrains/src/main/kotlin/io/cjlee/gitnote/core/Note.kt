@@ -15,7 +15,8 @@ data class Note(
 )
 
 data class Message(
-    val id: String,
+    val uuid: String,
+    val oid: String,
     val line: Int,
     @JsonSerialize(using = MessageSerializer::class)
     val message: String,
@@ -23,6 +24,8 @@ data class Message(
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
     @JsonAlias("created_at")
     val createdAt: LocalDateTime,
+    @JsonAlias("updated_at")
+    val updatedAt: LocalDateTime,
 )
 
 class MessageSerializer : JsonSerializer<String>(){

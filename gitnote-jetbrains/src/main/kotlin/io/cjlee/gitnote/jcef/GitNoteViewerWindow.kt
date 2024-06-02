@@ -25,7 +25,7 @@ class GitNoteViewerWindow(private val project: Project, private val protocolHand
         else this.loadURL("http://gitnote/index.html")
 
         registerAppSchemeHandler()
-        registerProtocolHandlers(this)
+        registerProtocolHandlers(this, isDevelopment)
         jbCefClient.setProperty(JBCefClient.Properties.JS_QUERY_POOL_SIZE, 200)
         this.setProperty(JBCefBrowserBase.Properties.NO_CONTEXT_MENU, true)
 
@@ -33,7 +33,7 @@ class GitNoteViewerWindow(private val project: Project, private val protocolHand
         Disposer.register(project, this)
     }
 
-    private fun registerProtocolHandlers(browser: JBCefBrowser) {
+    private fun registerProtocolHandlers(browser: JBCefBrowser, isDevelopment: Boolean) {
         val jsQuery = JBCefJSQuery.create((browser as JBCefBrowserBase))
 
         // inject query into javascript
@@ -42,7 +42,9 @@ class GitNoteViewerWindow(private val project: Project, private val protocolHand
         frontHandler.addHandler("theme", ThemeProtocolHandler())
         jsQuery.addHandler(frontHandler)
 
-        browser.jbCefClient.addDisplayHandler(JCefDebugDisplayHandler(), browser.cefBrowser) // for debugging
+        if (isDevelopment) {
+            browser.jbCefClient.addDisplayHandler(JCefDebugDisplayHandler(), browser.cefBrowser) // for debugging
+        }
     }
 
     val content: JComponent

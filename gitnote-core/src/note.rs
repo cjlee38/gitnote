@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::libgit::GitBlob;
 use crate::utils::PathBufExt;
@@ -32,34 +33,11 @@ impl Note {
     }
 
     pub fn append(&mut self, message: Message) -> anyhow::Result<()> {
-        self.validate_line_distinct(&message)?;
         self.messages.push(message);
         return Ok(());
     }
 
-    fn validate_line_distinct(&self, message: &Message) -> anyhow::Result<()> {
-        if let Some(_) = self.find_message_indexed(message.line) {
-            return Err(anyhow!(format!(
-                "{} line duplicated. consider to use `edit` instead.", message.line
-            )));
-        }
-        return Ok(());
-    }
-
-    pub fn edit(&mut self, new_message: Message) {
-        if let Some((index, _)) = self.find_message_indexed(new_message.line) {
-            self.messages.remove(index);
-            self.messages.push(new_message);
-        }
-    }
-
-    pub fn delete(&mut self, line: usize) {
-        if let Some((index, _)) = self.find_message_indexed(line) {
-            self.messages.remove(index);
-        }
-    }
-
-    fn find_message_indexed(&self, line: usize) -> Option<(usize, &Message)> {
+    pub fn find_message_indexed(&self, line: usize) -> Option<(usize, &Message)> {
         let len = self.messages.len();
         for index in 0..len {
             let message = &self.messages[index];
@@ -73,29 +51,34 @@ impl Note {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
-    pub id: String,
+    pub uuid: String,
+    pub oid: String,
     pub line: usize,
     pub snippet: String,
     pub message: String,
     #[serde(with = "datetime")]
     created_at: DateTime<Utc>,
+    #[serde(with = "datetime")]
+    pub updated_at: DateTime<Utc>,
 }
 
 impl Message {
     pub fn new(blob: &GitBlob, line: usize, message: String) -> anyhow::Result<Self> {
         let snippet = blob
             .content
-            .get(line - 1)
+            .get(line)
             .with_context(|| {
                 format!("specified line({}) extends limit for file {:?}", line, &blob.file_path)
             })?.to_string();
 
         Ok(Message {
-            id: blob.id.to_string(),
+            uuid: Uuid::new_v4().to_string(),
+            oid: blob.id.to_string(),
             line,
             snippet,
             message,
             created_at: Utc::now(),
+            updated_at: Utc::now(),
         })
     }
 }

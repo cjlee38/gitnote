@@ -34,19 +34,19 @@ class CoreHandler(private val connector: CoreConnector) {
 
     // always do read on modification.
     fun add(filePath: String, line: Int, message: String): CoreConnector.Response {
-        return connector.add(filePath, line, message)
+        return connector.add(filePath, line + 1, message)
             .onSuccess { cache.put(filePath, read0(filePath)) }
     }
 
     // always do read on modification.
     fun update(filePath: String, line: Int, message: String): CoreConnector.Response {
-        return connector.update(filePath, line, message)
+        return connector.update(filePath, line + 1, message)
             .onSuccess { cache.put(filePath, read0(filePath)) }
     }
 
     // always do read on modification.
     fun delete(filePath: String, line: Int): CoreConnector.Response {
-        return connector.delete(filePath, line)
+        return connector.delete(filePath, line + 1)
             .onSuccess { cache.put(filePath, read0(filePath)) }
     }
 
