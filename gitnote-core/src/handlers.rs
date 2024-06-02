@@ -102,9 +102,9 @@ pub fn edit_note(file_name: String, line: usize, message: String) -> anyhow::Res
     validate_file_staged(&file_path)?;
 
     let mut actual_note = read_actual_note(&file_path)?;
-    let view_note = read_opaque_note(&file_path)?;
+    let opaque_note = read_opaque_note(&file_path)?;
 
-    return if let Some((_, message_found)) = view_note.find_message_indexed(line) {
+    return if let Some((_, message_found)) = opaque_note.find_message_indexed(line) {
         let uuid = &message_found.uuid;
         for message_to_update in &mut actual_note.messages {
             if message_to_update.uuid == *uuid {
@@ -128,9 +128,9 @@ pub fn delete_note(file_name: String, line: usize) -> anyhow::Result<()> {
     validate_file_staged(&file_path)?;
 
     let mut actual_note = read_actual_note(&file_path)?;
-    let view_note = read_opaque_note(&file_path)?;
+    let opaque_note = read_opaque_note(&file_path)?;
 
-    return if let Some((_, message_found)) = view_note.find_message_indexed(line) {
+    return if let Some((_, message_found)) = opaque_note.find_message_indexed(line) {
         let uuid = &message_found.uuid;
         let x: Vec<Message> = actual_note.messages.into_iter()
             .filter(|m| m.uuid != *uuid)
