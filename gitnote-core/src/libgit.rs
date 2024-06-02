@@ -49,26 +49,6 @@ pub fn find_gitnote_path() -> anyhow::Result<PathBuf> {
     return Ok(path);
 }
 
-pub fn find_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
-    let repository = Repository::discover(".")?;
-
-    // Check index first
-    let index = repository.index()?;
-    if let Some(entry) = index.get_path(file_path, 0) {
-        let blob = repository.find_blob(entry.id)?;
-        return GitBlob::of(blob, file_path);
-    }
-
-    // If not found in index, check HEAD commit
-    let head = repository.head()?.resolve()?.peel_to_commit()?;
-    let object = head.tree()?.get_path(file_path)?.to_object(&repository)?;
-    if let Some(blob) = object.as_blob() {
-        return GitBlob::of(blob.clone(), file_path)
-    }
-
-    return Err(anyhow!("The file was not found in the repository's index or in the latest commit"));
-}
-
 pub fn find_volatile_git_blob(file_path: &PathBuf) -> anyhow::Result<GitBlob> {
     let repository = Repository::discover(".")?;
     let path = repository.path().parent().unwrap().join(file_path);
