@@ -1,6 +1,5 @@
 package io.cjlee.gitnote
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.util.ui.JBUI
@@ -8,9 +7,11 @@ import io.cjlee.gitnote.jcef.GitNoteViewerWindow
 import io.cjlee.gitnote.jcef.JcefViewerWindowService
 import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
 import java.awt.BorderLayout
+import java.awt.event.KeyEvent
 import javax.swing.Action
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.KeyStroke
 import javax.swing.SwingUtilities
 import javax.swing.border.Border
 
@@ -57,6 +58,11 @@ class GitNoteDialog(
             size = JBUI.size(WIDTH, HEIGHT)
             minimumSize = JBUI.size(WIDTH, HEIGHT)
             pack()
+            registerKeyboardAction(
+                { dispose() },
+                KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
+                JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
+            )
         }
     }
 
