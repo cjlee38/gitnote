@@ -1,5 +1,5 @@
 [package]
-name = "git-note"
+name = "gitnote"
 version = "0.0.1"
 edition = "2021"
 homepage = "https://github.com/cjlee38/gitnote"
