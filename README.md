@@ -11,4 +11,8 @@ You could try to write down notes in a text editor or elsewhere, but it’s ofte
 This is where git-note comes into play—a tool designed to allow you to record your insights, comments, or notes directly related to the code while keeping them concealed from the source code itself. These comments are accessible exclusively to you and can be seamlessly integrated with your IDE, making it effortlessly easy to review your annotations within the context of the code.
 
 ### Installation
-TBD
+- Currently, git-note is available for installation directly from the IntelliJ plugin using the latest release from [release page](https://github.com/cjlee38/gitnote/releases). Please note that this is a beta version, and I am actively working on improvements and new features. Upon completion of the beta testing phase, we plan to publish git-note on the JetBrains plugin market for easier access. 
+
+- At present, git-note supports **only Apple Silicon Mac**. However, I am committed to expanding our support to other platforms including Windows, Intel macOS, and Linux.
+
+- In the long term, we also have plans to develop a plugin for Visual Studio Code. This is a significant undertaking, so welcome any contributions from the community to help make this a reality.
