@@ -24,19 +24,17 @@ import javax.swing.SwingUtilities
 class GitNoteDocumentListener(
     private val editor: EditorEx,
     private val handler: CoreHandler,
-    val file: VirtualFile
+    private val file: VirtualFile
 ) : BulkAwareDocumentListener {
-    private var note: Note
+    private lateinit var note: Note
     private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
-    private val onDispose = { SwingUtilities.invokeLater { this.reload() } }
+    private val reloadOnEventThread = { SwingUtilities.invokeLater { this.reload() } }
     private val queue = MergingUpdateQueue("GitNoteQueue", 100, true, null)
 
     private val lineHighlighters = mutableSetOf<RangeHighlighterEx>()
 
     init {
-        this.note = handler.read(file.path, force = true) ?: throw IllegalStateException("no note")
-        addNoteMessageIcons(editor.document)
-        addEmptyMessageIcons(editor.document)
+        reloadOnEventThread()
 
         val iconVisibility = IconVisibility(lineHighlighters)
         editor.addEditorMouseListener(iconVisibility)
@@ -144,7 +142,7 @@ class GitNoteDocumentListener(
                     }
                     val response = handler.add(filePath, protocolMessage.line, protocolMessage.message)
                     if (response.isSuccess) {
-                        onDispose()
+                        reloadOnEventThread()
                         return ProtocolHandler.Response()
                     }
                     return ProtocolHandler.Response(error = "Failed to add message : ${response.text}")
@@ -160,7 +158,7 @@ class GitNoteDocumentListener(
 
                     val response = handler.update(filePath, protocolMessage.line, protocolMessage.message)
                     if (response.isSuccess) {
-                        onDispose()
+                        reloadOnEventThread()
                         return ProtocolHandler.Response()
                     }
                     return ProtocolHandler.Response(error = "Failed to update message : ${response.text}")
@@ -173,7 +171,7 @@ class GitNoteDocumentListener(
                     if (!deleteResponse.isSuccess) {
                         return ProtocolHandler.Response(error = "Failed to delete message : ${deleteResponse.text}")
                     }
-                    onDispose()
+                    reloadOnEventThread()
                     return ProtocolHandler.Response()
                 }
             },
