@@ -66,6 +66,17 @@ const Message = (props) => {
         setMessageValue(prevMessageValue);
     }
 
+    const handleEnters = (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            if (event.shiftKey) {
+                setMessageValue(messageValue + "\n");
+            } else {
+                handleOKClick();
+            }
+        }
+    }
+
     return (
         <>
             {contextHolder}
@@ -89,6 +100,7 @@ const Message = (props) => {
                         placeholder={"Add a new note !"}
                         onChange={(e) => setMessageValue(e.target.value)}
                         onDoubleClick={() => handleEdit()}
+                        onKeyDown={handleEnters}
                         readOnly={!isEdit}
                         wrap="soft"
                         cols={50}
