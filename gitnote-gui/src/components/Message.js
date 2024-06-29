@@ -73,11 +73,12 @@ const Message = (props) => {
 
     const handleEnters = (event) => {
         if (event.key === 'Enter') {
-            event.preventDefault();
-            if (event.shiftKey) {
-                handleOKClick();
-            } else {
-                setMessageValue(messageValue + "\n");
+            if (!event.nativeEvent.isComposing) {
+                // event.stopPropagation();
+                if (event.shiftKey) {
+                    event.preventDefault();
+                    handleOKClick();
+                }
             }
         }
     }
