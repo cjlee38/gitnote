@@ -35,10 +35,11 @@ class GitNoteDocumentListener(
 
     init {
         reloadOnEventThread()
-
-        val iconVisibility = IconVisibility(lineHighlighters)
-        editor.addEditorMouseListener(iconVisibility)
-        editor.addEditorMouseMotionListener(iconVisibility)
+        SwingUtilities.invokeLater {
+            val iconVisibility = IconVisibility(lineHighlighters)
+            editor.addEditorMouseListener(iconVisibility)
+            editor.addEditorMouseMotionListener(iconVisibility)
+        }
     }
 
     override fun documentChanged(event: DocumentEvent) {
