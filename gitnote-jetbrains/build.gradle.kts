@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "io.cjlee"
-version = "0.0.1-P2"
+version = "0.0.1-P3"
 
 repositories {
     mavenCentral()
