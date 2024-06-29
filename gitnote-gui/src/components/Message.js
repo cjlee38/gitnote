@@ -8,6 +8,7 @@ import {message as antdMessage} from "antd";
 const Message = (props) => {
     const theme = props.theme;
     const message = props.message;
+
     const [messageValue, setMessageValue] = useState(message.message);
     const [prevMessageValue, setPrevMessageValue] = useState(message.message);
     const [showIcons, setShowIcons] = useState(false);
@@ -17,6 +18,10 @@ const Message = (props) => {
 
     const handleEdit = () => {
         setIsEdit(true);
+    }
+
+    const handleMessageUpdate = (data) => {
+        setMessageValue(data);
     }
 
     const handleDelete = () => {
@@ -70,9 +75,9 @@ const Message = (props) => {
         if (event.key === 'Enter') {
             event.preventDefault();
             if (event.shiftKey) {
-                setMessageValue(messageValue + "\n");
-            } else {
                 handleOKClick();
+            } else {
+                setMessageValue(messageValue + "\n");
             }
         }
     }
@@ -95,10 +100,10 @@ const Message = (props) => {
                 >
                     <TextareaAutosize
                         minRows={3}
-                        style={{resize: 'none', border: 'none', backgroundColor: theme.editorBackground, color: theme.text}}
+                        style={{resize: 'none', border: 'none', backgroundColor: theme.editorBackground, color: theme.text, overflow: 'hidden'}}
                         value={messageValue}
                         placeholder={"Add a new note !"}
-                        onChange={(e) => setMessageValue(e.target.value)}
+                        onChange={(e) => handleMessageUpdate(e.target.value)}
                         onDoubleClick={() => handleEdit()}
                         onKeyDown={handleEnters}
                         readOnly={!isEdit}
@@ -115,7 +120,7 @@ const Message = (props) => {
                                 gap: '4px'
                             }}
                         >
-                            <Tooltip title="Edit">
+                            <Tooltip title="">
                                 <Button
                                     size="small"
                                     shape="circle"
@@ -133,7 +138,7 @@ const Message = (props) => {
                                 cancelButtonProps={{style: {backgroundColor: theme.background}}}
                                 cancelText={<span style={{ color: theme.text }}>No</span>}
                             >
-                                <Tooltip title="Delete">
+                                <Tooltip title="">
                                     <Button
                                         size="small"
                                         shape="circle"

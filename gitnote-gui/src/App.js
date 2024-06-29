@@ -9,7 +9,6 @@ function App() {
         text: "#dddddd"
     });
 
-    // useSetup()
     useEffect(() => {
         requestToIde("theme", {})
             .then((data) => {
@@ -47,5 +46,3 @@ function App() {
 }
 
 export default App;
-
-// TODO : theme, font

@@ -1,63 +1,81 @@
 package io.cjlee.gitnote
 
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.convertValue
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
+import com.jetbrains.rd.swing.sizeProperty
 import io.cjlee.gitnote.jcef.GitNoteViewerWindow
 import io.cjlee.gitnote.jcef.JcefViewerWindowService
 import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
-import java.awt.BorderLayout
 import java.awt.event.KeyEvent
 import javax.swing.Action
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.JViewport
 import javax.swing.KeyStroke
+import javax.swing.ScrollPaneConstants
 import javax.swing.SwingUtilities
-import javax.swing.border.Border
 
 class GitNoteDialog(
     private val project: Project?,
     private val protocolHandlers: Map<String, ProtocolHandler>
 ) : DialogWrapper(true) {
     companion object {
-        const val WIDTH = 430
-        const val HEIGHT = 120
+        private const val WIDTH = 430
+        private const val HEIGHT = 110
+        private const val MARGIN_WIDTH_FOR_CONTENT = 20
+        private const val MARGIN_HEIGHT_FOR_CONTENT = 20
+        private const val MARGIN_WIDTH_FOR_DIALOG = 50
+        private const val MARGIN_HEIGHT_FOR_DIALOG = 70
     }
 
+    private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
     private lateinit var window: GitNoteViewerWindow
 
     init {
         title = "Gitnote"
-        setSize(WIDTH, HEIGHT)
+        setSize(WIDTH, HEIGHT) // initial size before rendered
 
         init()
-        pack()
-    }
-
-    override fun createContentPaneBorder(): Border {
-        return JBUI.Borders.empty(0, 12, 8, 12)
     }
 
     override fun createCenterPanel(): JComponent {
-        if (project == null) {
-            throw IllegalStateException("project null")
-        }
+        requireNotNull(project)
+
         val service = project.getService(JcefViewerWindowService::class.java)
-        val windowDisposalProtocolHandler = object: ProtocolHandler {
+        val windowDisposalProtocolHandler = object : ProtocolHandler {
             override fun handle(data: Any?): ProtocolHandler.Response {
                 dispose()
                 return ProtocolHandler.Response()
             }
         }
-        val handlers = protocolHandlers + ("window/close" to windowDisposalProtocolHandler)
+
+        data class ResizeDimension(
+            val width: Int,
+            val height: Int,
+        )
+
+        val windowResizeProtocolHandler = object : ProtocolHandler {
+            override fun handle(data: Any?): ProtocolHandler.Response {
+                val dimension = mapper.convertValue<ResizeDimension>(data!!)
+                window.content.preferredSize =
+                    JBUI.size(dimension.width + MARGIN_WIDTH_FOR_CONTENT, dimension.height + MARGIN_HEIGHT_FOR_CONTENT)
+                val dialogWindow = SwingUtilities.getWindowAncestor(window.content)
+                dialogWindow.size =
+                    JBUI.size(dimension.width + MARGIN_WIDTH_FOR_DIALOG, dimension.height + MARGIN_HEIGHT_FOR_DIALOG)
+                return ProtocolHandler.Response()
+            }
+        }
+        val handlers =
+            protocolHandlers + ("window/close" to windowDisposalProtocolHandler) + ("window/resize" to windowResizeProtocolHandler)
+
         this.window = service.newWindow(handlers)
 
-        return JPanel().apply {
-            layout = BorderLayout()
-            add(window.content, BorderLayout.CENTER)
-            size = JBUI.size(WIDTH, HEIGHT)
-            minimumSize = JBUI.size(WIDTH, HEIGHT)
-            pack()
+        return window.content.apply {
             registerKeyboardAction(
                 { dispose() },
                 KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
