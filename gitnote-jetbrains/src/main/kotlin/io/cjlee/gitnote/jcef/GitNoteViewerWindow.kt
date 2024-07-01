@@ -56,6 +56,7 @@ class GitNoteViewerWindow(private val project: Project, private val protocolHand
     }
 
     fun dispose() {
+        webView.jbCefClient.dispose()
         webView.dispose()
     }
 }

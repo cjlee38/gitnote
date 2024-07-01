@@ -85,8 +85,10 @@ class GitNoteDialog(
     }
 
     override fun dispose() {
-        this.window.dispose()
-        SwingUtilities.invokeLater { super.dispose() }
+        SwingUtilities.invokeLater {
+            this.window.dispose()
+            super.dispose()
+        }
     }
 
     override fun createActions(): Array<Action> {
