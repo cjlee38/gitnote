@@ -62,11 +62,13 @@ class GitNoteDialog(
         val windowResizeProtocolHandler = object : ProtocolHandler {
             override fun handle(data: Any?): ProtocolHandler.Response {
                 val dimension = mapper.convertValue<ResizeDimension>(data!!)
-                window.content.preferredSize =
-                    JBUI.size(dimension.width + MARGIN_WIDTH_FOR_CONTENT, dimension.height + MARGIN_HEIGHT_FOR_CONTENT)
+                val width = dimension.width.coerceAtLeast(WIDTH)
+                val height = dimension.height.coerceAtLeast(HEIGHT)
+
+                window.content.preferredSize = JBUI.size(width + MARGIN_WIDTH_FOR_CONTENT, height + MARGIN_HEIGHT_FOR_CONTENT)
+
                 val dialogWindow = SwingUtilities.getWindowAncestor(window.content)
-                dialogWindow.size =
-                    JBUI.size(dimension.width + MARGIN_WIDTH_FOR_DIALOG, dimension.height + MARGIN_HEIGHT_FOR_DIALOG)
+                dialogWindow.size = JBUI.size(width + MARGIN_WIDTH_FOR_DIALOG, height + MARGIN_HEIGHT_FOR_DIALOG)
                 return ProtocolHandler.Response()
             }
         }
