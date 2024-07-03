@@ -3,8 +3,10 @@ package io.cjlee.gitnote
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.convertValue
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import com.jetbrains.rd.swing.sizeProperty
@@ -49,7 +51,7 @@ class GitNoteDialog(
         val service = project.getService(JcefViewerWindowService::class.java)
         val windowDisposalProtocolHandler = object : ProtocolHandler {
             override fun handle(data: Any?): ProtocolHandler.Response {
-                dispose()
+                SwingUtilities.invokeLater { close(0) }
                 return ProtocolHandler.Response()
             }
         }
@@ -76,20 +78,14 @@ class GitNoteDialog(
             protocolHandlers + ("window/close" to windowDisposalProtocolHandler) + ("window/resize" to windowResizeProtocolHandler)
 
         this.window = service.newWindow(handlers)
+        Disposer.register(this.disposable, this.window.webView)
 
         return window.content.apply {
             registerKeyboardAction(
-                { dispose() },
+                { SwingUtilities.invokeLater { close(0) } },
                 KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
                 JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
             )
-        }
-    }
-
-    override fun dispose() {
-        SwingUtilities.invokeLater {
-            this.window.dispose()
-            super.dispose()
         }
     }
 

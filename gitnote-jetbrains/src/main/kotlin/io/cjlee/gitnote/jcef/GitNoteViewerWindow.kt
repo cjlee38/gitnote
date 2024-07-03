@@ -18,14 +18,18 @@ import org.cef.handler.CefDisplayHandler
 import javax.swing.JComponent
 
 
-class GitNoteViewerWindow(private val project: Project, private val protocolHandlers: Map<String, ProtocolHandler>) {
-    private val webView: JBCefBrowser = JBCefBrowser().apply {
-        val isDevelopment = System.getProperty("gitnote.developmentPhase", "false").toBoolean()
+class GitNoteViewerWindow(
+    private val project: Project,
+    private val protocolHandlers: Map<String, ProtocolHandler>
+) {
+    private val isDevelopment = System.getProperty("gitnote.developmentPhase", "false").toBoolean()
+
+    val webView: JBCefBrowser = JBCefBrowser().apply {
         if (isDevelopment) this.loadURL("http://localhost:3000/index.html")
         else this.loadURL("http://gitnote/index.html")
 
         registerAppSchemeHandler()
-        registerProtocolHandlers(this, isDevelopment)
+        registerProtocolHandlers(this)
         jbCefClient.setProperty(JBCefClient.Properties.JS_QUERY_POOL_SIZE, 200)
         this.setProperty(JBCefBrowserBase.Properties.NO_CONTEXT_MENU, true)
 
@@ -33,7 +37,7 @@ class GitNoteViewerWindow(private val project: Project, private val protocolHand
         Disposer.register(project, this)
     }
 
-    private fun registerProtocolHandlers(browser: JBCefBrowser, isDevelopment: Boolean) {
+    private fun registerProtocolHandlers(browser: JBCefBrowser) {
         val jsQuery = JBCefJSQuery.create((browser as JBCefBrowserBase))
 
         // inject query into javascript
@@ -53,11 +57,6 @@ class GitNoteViewerWindow(private val project: Project, private val protocolHand
     private fun registerAppSchemeHandler() {
         CefApp.getInstance()
             .registerSchemeHandlerFactory("http", "gitnote", JcefSchemeHandlerFactory())
-    }
-
-    fun dispose() {
-        webView.jbCefClient.dispose()
-        webView.dispose()
     }
 }
 
