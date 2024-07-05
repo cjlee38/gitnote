@@ -24,18 +24,21 @@ class GitNoteViewerWindow(
 ) {
     private val isDevelopment = System.getProperty("gitnote.developmentPhase", "false").toBoolean()
 
-    val webView: JBCefBrowser = JBCefBrowser().apply {
-        if (isDevelopment) this.loadURL("http://localhost:3000/index.html")
-        else this.loadURL("http://gitnote/index.html")
+    val webView: JBCefBrowser = JBCefBrowser.createBuilder()
+        .setOffScreenRendering(false)
+        .build()
+        .apply {
+            if (isDevelopment) this.loadURL("http://localhost:3000/index.html")
+            else this.loadURL("http://gitnote/index.html")
 
-        registerAppSchemeHandler()
-        registerProtocolHandlers(this)
-        jbCefClient.setProperty(JBCefClient.Properties.JS_QUERY_POOL_SIZE, 200)
-        this.setProperty(JBCefBrowserBase.Properties.NO_CONTEXT_MENU, true)
+            registerAppSchemeHandler()
+            registerProtocolHandlers(this)
+            jbCefClient.setProperty(JBCefClient.Properties.JS_QUERY_POOL_SIZE, 200)
+            this.setProperty(JBCefBrowserBase.Properties.NO_CONTEXT_MENU, true)
 
-        // TODO : Don't use Project as disposable in plugin code(Choosing a Disposable Parent)
-        Disposer.register(project, this)
-    }
+            // TODO : Don't use Project as disposable in plugin code(Choosing a Disposable Parent)
+            Disposer.register(project, this)
+        }
 
     private fun registerProtocolHandlers(browser: JBCefBrowser) {
         val jsQuery = JBCefJSQuery.create((browser as JBCefBrowserBase))

@@ -5,8 +5,8 @@ import {message as antdMessage} from "antd";
 
 const Note = (props) => {
     const [messages, setMessages] = useState([]);
-
     const [messageApi, contextHolder] = antdMessage.useMessage();
+
     useEffect(() => {
         readMessages();
     }, []);
@@ -24,17 +24,6 @@ const Note = (props) => {
         setMessages(data);
         console.log(`the messages : ${messages}`)
     }
-
-    // const updateDimensions = () => {
-    //     console.log("Container dimensions: ", containerRef.current.offsetWidth, containerRef.current.offsetHeight);
-    //
-    //     requestToIde("window/resize", {
-    //         width: containerRef.current.offsetWidth,
-    //         height: containerRef.current.offsetHeight,
-    //     }, messageApi.error).then((data) => {
-    //         console.log("resizeWindow got data : " + data);
-    //     });
-    // }
 
     const refCallback = useCallback((node) => {
         if (node) {

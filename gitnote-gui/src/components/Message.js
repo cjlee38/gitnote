@@ -14,14 +14,16 @@ const Message = (props) => {
     const [showIcons, setShowIcons] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
 
+    const [isComposing, setIsComposing] = useState(false);
     const [messageApi, contextHolder] = antdMessage.useMessage();
 
     const handleEdit = () => {
         setIsEdit(true);
     }
 
-    const handleMessageUpdate = (data) => {
-        setMessageValue(data);
+    const handleMessageUpdate = (event) => {
+        event.preventDefault();
+        setMessageValue(event.target.value);
     }
 
     const handleDelete = () => {
@@ -72,14 +74,9 @@ const Message = (props) => {
     }
 
     const handleEnters = (event) => {
-        if (event.key === 'Enter') {
-            if (!event.nativeEvent.isComposing) {
-                // event.stopPropagation();
-                if (event.shiftKey) {
-                    event.preventDefault();
-                    handleOKClick();
-                }
-            }
+        if (event.key === 'Enter' && event.shiftKey) {
+            event.preventDefault();
+            handleOKClick();
         }
     }
 
@@ -104,7 +101,7 @@ const Message = (props) => {
                         style={{resize: 'none', border: 'none', backgroundColor: theme.editorBackground, color: theme.text, overflow: 'hidden'}}
                         value={messageValue}
                         placeholder={"Add a new note !"}
-                        onChange={(e) => handleMessageUpdate(e.target.value)}
+                        onChange={handleMessageUpdate}
                         onDoubleClick={() => handleEdit()}
                         onKeyDown={handleEnters}
                         readOnly={!isEdit}
