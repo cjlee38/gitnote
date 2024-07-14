@@ -20,7 +20,6 @@ readme = "../README.md"
 [dependencies]
 clap = { version = "4", features = ["cargo", "wrap_help"] }
 serde = { version = "1.0.197", features = ["derive"] }
-git2 = "0.18.3"
 serde_json = "1.0.115"
 log = "0.4.21"
 anyhow = "1.0"
@@ -29,6 +28,7 @@ configparser = "3.0.4"
 chrono = "0.4.38"
 colored = "2.1.0"
 unicode-width = "0.1.12"
+similar = "2.5.0"
 
 [dependencies.uuid]
 version = "1.8.0"
@@ -43,3 +43,6 @@ linker = "x86_64-w64-mingw32-gcc"
 
 [target.x86_64-unknown-linux-gnu]
 linker = "x86_64-linux-gnu-gcc"
+
+[target.x86_64-unknown-linux-musl]
+linker = "x86_64-linux-musl-gcc"
