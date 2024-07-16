@@ -70,14 +70,13 @@ tasks {
 
     register<Exec>("buildCore") {
         workingDir = file("../gitnote-core")
-        commandLine("cargo", "build", "--release")
+        commandLine("sh", "build.sh")
     }
 
-    register<Copy>("copyCore") {
+    register<Exec>("copyCore") {
         dependsOn(named("buildCore"))
-        delete("src/main/resources/core/")
-        from("../gitnote-core/target/release/git-note")
-        into("src/main/resources/core/.")
+        workingDir = file("../gitnote-core")
+        commandLine("sh", "copy.sh")
     }
 
     register<NpxTask>("buildGui") {

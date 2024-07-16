@@ -1,10 +1,10 @@
 package io.cjlee.gitnote.core
 
 import org.apache.commons.io.FileUtils
+import org.apache.commons.lang3.SystemUtils
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
-import java.util.Arrays
 
 class ProcessCoreConnector(
     private val projectPath: String
@@ -46,19 +46,40 @@ class ProcessCoreConnector(
     }
 
     companion object ProcessLoader {
-        private const val RESOURCE_LOCATION = "core/git-note"
+        private const val RESOURCE_LOCATION = "core/"
         private val BINARY_LOCATION = System.getProperty("java.io.tmpdir") + "git-note"
         val COMMAND: Array<String>
 
         init {
             val classLoader = this::class.java.classLoader
             val file = File(BINARY_LOCATION)
-            FileUtils.copyURLToFile(classLoader.getResource(RESOURCE_LOCATION), file)
 
-            COMMAND = if (!file.setExecutable(true)) { arrayOf("git", "note") }
-            else { arrayOf(BINARY_LOCATION) }
+            val os = determineOs()
+            FileUtils.copyURLToFile(classLoader.getResource(RESOURCE_LOCATION + os.binary), file)
+
+            COMMAND = if (!file.setExecutable(true)) {
+                arrayOf("git", "note")
+            } else {
+                arrayOf(BINARY_LOCATION)
+            }
 
             file.deleteOnExit()
+        }
+
+        private fun determineOs(): OS {
+            return when {
+                SystemUtils.IS_OS_WINDOWS -> OS.WINDOWS
+                SystemUtils.IS_OS_MAC -> OS.MAC
+                SystemUtils.IS_OS_LINUX -> OS.LINUX
+                else -> OS.UNKNOWN
+            }
+        }
+
+        enum class OS(val os: String, val binary: String) {
+            WINDOWS("windows", "x86_64_pc-windows-gnu/git-note.exe"),
+            MAC("mac", "aarch64-apple-darwin/git-note"),
+            LINUX("linux", "x86_64_unknown-linux-gnu/git-note"),
+            UNKNOWN("unknown", "")
         }
     }
 }
