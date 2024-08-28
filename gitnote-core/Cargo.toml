@@ -30,6 +30,9 @@ colored = "2.1.0"
 unicode-width = "0.1.12"
 similar = "2.5.0"
 
+[dev-dependencies]
+tempfile = "3"
+
 [dependencies.uuid]
 version = "1.8.0"
 features = [

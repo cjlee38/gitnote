@@ -9,6 +9,7 @@ use crate::note::{Message, Note};
 
 pub fn write_note(note: &Note) -> anyhow::Result<()> {
     let note_path = find_note_path(&note.id)?;
+    // create a file if it does not exist, and will truncate it if it does.
     let file = File::create(note_path)?;
     serde_json::to_writer(&file, &note)?;
     return Ok(());
@@ -37,6 +38,7 @@ pub fn read_actual_note(file_path: &PathBuf) -> anyhow::Result<Note> {
     return Ok(Note::new(&id, file_path));
 }
 
+/// Read note from file and filter out invalid messages
 pub fn read_opaque_note(file_path: &PathBuf) -> anyhow::Result<Note> {
     let all_note = read_actual_note(file_path)?;
     let valid_messages: Vec<Message> = all_note.messages.into_iter()

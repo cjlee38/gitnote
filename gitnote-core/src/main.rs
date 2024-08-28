@@ -7,6 +7,10 @@ mod io;
 mod stdio;
 mod note;
 mod utils;
+mod cli;
+mod path;
+#[cfg(test)]
+mod testlib;
 
 static EXIT_OK: u8 = 0;
 static EXIT_ERR: u8 = 1;

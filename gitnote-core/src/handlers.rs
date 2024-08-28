@@ -7,6 +7,7 @@ use unicode_width::UnicodeWidthStr;
 use crate::io::{read_actual_note, read_or_create_note, read_opaque_note, write_note};
 use crate::libgit::{find_root_path, find_volatile_git_blob, stage_file};
 use crate::note::Message;
+use crate::path::PathResolver;
 use crate::stdio::write_out;
 
 pub fn add_note(file_name: String, line: usize, message: String) -> anyhow::Result<()> {
