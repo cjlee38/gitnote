@@ -38,10 +38,10 @@ impl Note {
         return Ok(());
     }
 
-    pub fn find_message_indexed(&self, line: usize) -> Option<(usize, &Message)> {
+    pub fn find(&self, line: usize) -> Option<&Message> {
         return self.messages.iter()
-            .enumerate()
-            .find(|(_, m)| m.line == line);
+            .rev()
+            .find(|m| m.line == line);
     }
 }
 
