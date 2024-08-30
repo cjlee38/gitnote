@@ -133,7 +133,7 @@ mod tests {
     #[test]
     fn path_resolver() -> anyhow::Result<()> {
         let repo = TestRepo::new();
-        let path = repo.create_file("foo.txt", Some("hello world"))?;
+        repo.create_file("foo.txt", Some("hello world"))?;
         let resolver = PathResolver::from_input(repo.path())?;
         println!("root = {:?}", resolver.root);
         Ok(())

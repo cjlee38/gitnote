@@ -9,15 +9,15 @@ use anyhow::{anyhow, Error};
 use tempfile::tempdir_in;
 
 pub struct TestRepo {
-    dir: tempfile::TempDir, // holds tempdir ref to delay cleanup
+    _dir: tempfile::TempDir, // holds tempdir ref to delay cleanup
     path: PathBuf,
 }
 
 impl TestRepo {
     pub fn new() -> Self {
-        let dir = tempdir_in(".").unwrap();
-        let path = dir.path().to_path_buf();
-        let repo = Self { dir, path };
+        let _dir = tempdir_in(".").unwrap();
+        let path = _dir.path().to_path_buf();
+        let repo = Self { _dir, path };
         repo.command("git init").expect("Failed to initialize git repository");
         repo
     }
@@ -53,10 +53,6 @@ impl TestRepo {
 
     pub fn path(&self) -> &PathBuf {
         &self.path
-    }
-
-    pub fn path_as_string(&self) -> anyhow::Result<String> {
-        Ok(self.path.to_str().ok_or(anyhow!("path {:?} to str failed", self.path))?.to_string())
     }
 }
 

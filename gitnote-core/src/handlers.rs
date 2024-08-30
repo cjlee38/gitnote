@@ -1,12 +1,11 @@
-use std::env;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
 use crate::io::{read_actual_note, read_opaque_note, read_or_create_note, write_note};
-use crate::libgit::{find_root_path, find_volatile_git_blob};
+use crate::libgit::find_volatile_git_blob;
 use crate::note::Message;
 use crate::path::PathResolver;
 use crate::stdio::write_out;
@@ -18,7 +17,7 @@ pub struct NoteHandler {
 impl NoteHandler {
     pub fn new(current_path: &Path) -> Self {
         NoteHandler {
-            path_resolver: PathResolver::from_input(current_path).unwrap()
+            path_resolver: PathResolver::from_input(current_path).unwrap(),
         }
     }
 
@@ -41,10 +40,11 @@ impl NoteHandler {
 
         note.append(message)?;
         write_note(&paths, &note)?;
-        write_out(&format!( // todo : cli
+        write_out(&format!(
+            // todo : cli
             "Successfully added comment for {} in range {}",
-                            &paths,
-                            line + 1
+            &paths,
+            line + 1
         ));
         return Ok(());
     }
@@ -62,40 +62,43 @@ impl NoteHandler {
             return Ok(());
         }
         let messages = note.messages;
-        content.lines().enumerate().for_each(|(line, line_content)| {
-            let message = messages.iter().rev().find(|m| m.line == line);
-            if let Some(found) = message {
-                let message_lines = found
-                    .message
-                    .split("\n")
-                    .map(String::from)
-                    .collect::<Vec<String>>();
-                let padding = found.snippet.width();
-                for (i, line) in message_lines.iter().enumerate() {
-                    if i == 0 {
-                        write_out(&format!(
-                            "{} {} {} ",
-                            (found.line + 1).to_string().yellow(),
-                            found.snippet,
-                            line.red()
-                        ));
-                    } else {
-                        write_out(&format!(
-                            "{:width$} {}",
-                            "",
-                            line.red(),
-                            width = padding + 2
-                        ));
+        content
+            .lines()
+            .enumerate()
+            .for_each(|(line, line_content)| {
+                let message = messages.iter().rev().find(|m| m.line == line);
+                if let Some(found) = message {
+                    let message_lines = found
+                        .message
+                        .split("\n")
+                        .map(String::from)
+                        .collect::<Vec<String>>();
+                    let padding = found.snippet.width();
+                    for (i, line) in message_lines.iter().enumerate() {
+                        if i == 0 {
+                            write_out(&format!(
+                                "{} {} {} ",
+                                (found.line + 1).to_string().yellow(),
+                                found.snippet,
+                                line.red()
+                            ));
+                        } else {
+                            write_out(&format!(
+                                "{:width$} {}",
+                                "",
+                                line.red(),
+                                width = padding + 2
+                            ));
+                        }
                     }
+                } else {
+                    write_out(&format!(
+                        "{} {}",
+                        (line + 1).to_string().yellow(),
+                        line_content
+                    ));
                 }
-            } else {
-                write_out(&format!(
-                    "{} {}",
-                    (line + 1).to_string().yellow(),
-                    line_content
-                ));
-            }
-        });
+            });
 
         Ok(())
     }
@@ -120,10 +123,10 @@ impl NoteHandler {
             Ok(())
         } else {
             Err(anyhow!(format!(
-            "no comment found for line {} in {}. consider to use `add` instead.",
-            line + 1,
-            &paths
-        )))
+                "no comment found for line {} in {}. consider to use `add` instead.",
+                line + 1,
+                &paths
+            )))
         };
     }
 
@@ -147,10 +150,10 @@ impl NoteHandler {
             Ok(())
         } else {
             Err(anyhow!(format!(
-            "no comment found for line {} in {:?}",
-            line + 1,
-            &paths
-        )))
+                "no comment found for line {} in {:?}",
+                line + 1,
+                &paths
+            )))
         };
     }
 }
@@ -158,14 +161,13 @@ impl NoteHandler {
 #[cfg(test)]
 mod tests {
     use crate::handlers::NoteHandler;
-    use crate::note::Note;
     use crate::testlib::TestRepo;
 
     #[test]
     fn test_add_note() -> anyhow::Result<()> {
         // given
         let repo = TestRepo::new();
-        let path = repo.create_file("test.txt", Some("foo\nbar\nbaz")).unwrap();
+        repo.create_file("test.txt", Some("foo\nbar\nbaz")).unwrap();
         let note_handler = NoteHandler::new(repo.path());
         note_handler.add_note("test.txt".to_string(), 1, "hello".to_string())?;
 

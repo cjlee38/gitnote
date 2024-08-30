@@ -1,7 +1,5 @@
-use std::{env, fs};
 use std::fs::File;
-use std::io::{Read, Write};
-use std::ops::Index;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -28,34 +26,6 @@ impl GitBlob {
         }
         return None;
     }
-}
-
-#[deprecated]
-pub fn find_root_path(path: &Path) -> anyhow::Result<PathBuf> {
-    execute_git_command(path, vec!["rev-parse", "--show-toplevel"])?
-        .parse::<PathBuf>()
-        .map_err(|e| anyhow!("Failed to parse path: {}", e))
-}
-
-#[deprecated]
-pub fn find_gitnote_path() -> anyhow::Result<PathBuf> {
-    let path = find_root_path(&env::current_dir()?)?.join(".git/notes");
-    if !path
-        .try_exists()
-        .context("Failed to access the git-note path; check directory permissions.")?
-    {
-        initialize_note_path(&path)?;
-    }
-    return Ok(path);
-}
-
-#[deprecated]
-fn initialize_note_path(path: &PathBuf) -> anyhow::Result<()> {
-    fs::create_dir(&path)
-        .context("Failed to create git-note path; check directory permissions.")?;
-    let mut description = File::create(&path.join("description"))?;
-    description.write_all("This directory contains notes by `git-note`".as_bytes())?;
-    Ok(())
 }
 
 pub fn find_volatile_git_blob(paths: &Paths) -> anyhow::Result<GitBlob> {
@@ -123,13 +93,6 @@ impl DiffModel {
             valid: true,
         }
     }
-}
-
-fn split_lines(s: &str) -> Vec<String> {
-    s.replace("\r\n", "\n")
-        .split('\n')
-        .map(String::from)
-        .collect()
 }
 
 pub fn execute_git_command(path: &Path, args: Vec<&str>) -> anyhow::Result<String> {

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -41,7 +41,7 @@ impl Note {
     pub fn find_message_indexed(&self, line: usize) -> Option<(usize, &Message)> {
         return self.messages.iter()
             .enumerate()
-            .find(|(i, m)| m.line == line);
+            .find(|(_, m)| m.line == line);
     }
 }
 
