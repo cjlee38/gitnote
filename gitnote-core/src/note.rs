@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -28,6 +28,7 @@ impl Note {
         }
     }
 
+    /// Given path should be relative from root of the repository
     pub fn get_id(path: &PathBuf) -> anyhow::Result<String> {
         return Ok(sha256::digest(path.try_to_str()?));
     }
@@ -38,14 +39,9 @@ impl Note {
     }
 
     pub fn find_message_indexed(&self, line: usize) -> Option<(usize, &Message)> {
-        let len = self.messages.len();
-        for index in 0..len {
-            let message = &self.messages[index];
-            if message.line == line {
-                return Some((index, &message));
-            }
-        }
-        return None;
+        return self.messages.iter()
+            .enumerate()
+            .find(|(i, m)| m.line == line);
     }
 }
 
@@ -64,12 +60,8 @@ pub struct Message {
 
 impl Message {
     pub fn new(blob: &GitBlob, line: usize, message: String) -> anyhow::Result<Self> {
-        let snippet = blob
-            .content
-            .get(line)
-            .with_context(|| {
-                format!("specified line({}) extends limit for file {:?}", line, &blob.file_path)
-            })?.to_string();
+        let snippet = blob.snippet(line)
+            .ok_or(anyhow!("specified line({}) extends limit for file {:?}", line, &blob.file_path))?;
 
         Ok(Message {
             uuid: Uuid::new_v4().to_string(),

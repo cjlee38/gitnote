@@ -51,6 +51,10 @@ impl TestRepo {
         Ok(path)
     }
 
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+
     pub fn path_as_string(&self) -> anyhow::Result<String> {
         Ok(self.path.to_str().ok_or(anyhow!("path {:?} to str failed", self.path))?.to_string())
     }
