@@ -2,7 +2,10 @@ use std::env;
 use std::process::ExitCode;
 
 use crate::cli::Cli;
+use crate::diff::SimilarGitDiffer;
 use crate::handlers::NoteHandler;
+use crate::io::NoteRepository;
+use crate::libgit::ProcessLibgit;
 use crate::path::PathResolver;
 
 mod argument;
@@ -16,6 +19,7 @@ mod cli;
 mod path;
 #[cfg(test)]
 mod testlib;
+mod diff;
 
 static EXIT_OK: u8 = 0;
 static EXIT_ERR: u8 = 1;
@@ -33,9 +37,11 @@ fn handle_command<T>(result: anyhow::Result<T>) -> u8 {
 fn main() -> ExitCode {
     let cli = argument::build_cli();
     let matches = cli.get_matches();
+
     let current_dir = env::current_dir().unwrap();
-    let path_resolver = PathResolver::from_input(&current_dir).unwrap();
-    let note_handler = NoteHandler;
+    let libgit = ProcessLibgit::new(SimilarGitDiffer);
+    let path_resolver = PathResolver::from_input(&current_dir, &libgit).unwrap();
+    let note_handler = NoteHandler::new(NoteRepository::new(libgit));
     let cli = Cli::new(note_handler, path_resolver);
 
     let exit_code = match matches.subcommand() {

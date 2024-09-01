@@ -33,15 +33,17 @@ impl Note {
         return Ok(sha256::digest(path.try_to_str()?));
     }
 
+    pub fn messages(&self) -> Vec<&Message> {
+        return self.messages.iter().collect();
+    }
+
     pub fn append(&mut self, message: Message) -> anyhow::Result<()> {
         self.messages.push(message);
         return Ok(());
     }
 
     pub fn find(&self, line: usize) -> Option<&Message> {
-        return self.messages.iter()
-            .rev()
-            .find(|m| m.line == line);
+        return self.messages.iter().rev().find(|m| m.line == line);
     }
 }
 
@@ -60,8 +62,11 @@ pub struct Message {
 
 impl Message {
     pub fn new(blob: &GitBlob, line: usize, message: String) -> anyhow::Result<Self> {
-        let snippet = blob.snippet(line)
-            .ok_or(anyhow!("specified line({}) extends limit for file {:?}", line, &blob.file_path))?;
+        let snippet = blob.snippet(line).ok_or(anyhow!(
+            "specified line({}) extends limit for file {:?}",
+            line,
+            &blob.file_path
+        ))?;
 
         Ok(Message {
             uuid: Uuid::new_v4().to_string(),
@@ -72,6 +77,23 @@ impl Message {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         })
+    }
+
+    pub fn copy(&self, line: usize, oid: String) -> Self {
+        Message {
+            uuid: self.uuid.clone(),
+            oid,
+            line,
+            snippet: self.snippet.clone(),
+            message: self.message.clone(),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
+        }
+    }
+
+    pub fn update(&mut self, message: String) {
+        self.message = message;
+        self.updated_at = Utc::now();
     }
 }
 

@@ -2,83 +2,59 @@ use anyhow::anyhow;
 use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
-use crate::io::{read_actual_note, read_opaque_note, read_or_create_note, write_note};
-use crate::libgit::find_volatile_git_blob;
-use crate::note::{Message, Note};
+use crate::io::{NoteLedger, NoteRepository};
+use crate::libgit::Libgit;
 use crate::path::Paths;
 
-pub struct NoteHandler;
+pub struct NoteHandler<T>
+where
+    T: Libgit,
+{
+    note_repository: NoteRepository<T>,
+}
 
-impl NoteHandler {
+impl<T> NoteHandler<T>
+where
+    T: Libgit,
+{
+    pub fn new(note_repository: NoteRepository<T>) -> Self {
+        NoteHandler { note_repository }
+    }
     pub fn add_note(&self, paths: &Paths, line: usize, message: String) -> anyhow::Result<()> {
-        let mut note = read_or_create_note(paths)?;
-        let opaque_note = read_opaque_note(paths)?;
-        if opaque_note.find(line).is_some() {
-            return Err(anyhow!(
-                "comment already exists for line {} in {}. consider to use `edit` instead.",
-                line + 1,
-                paths
-            ));
+        let mut ledger = self.note_repository.read_note(paths)?;
+        if ledger.opaque_exists(line) {
+            return Err(anyhow!("comment already exists for line {} in {}. consider to use `edit` instead.", line + 1, paths));
         }
-
-        let blob = find_volatile_git_blob(paths)?;
-        let message = Message::new(&blob, line, message)?;
-
-        note.append(message)?;
-        write_note(paths, &note)?;
+        ledger.append(line, message)?;
+        self.note_repository.write_note(paths, &ledger.note())?;
         return Ok(());
     }
 
-    pub fn read_note(&self, paths: &Paths) -> anyhow::Result<Note> {
-        let note = read_opaque_note(paths)?;
-        return Ok(note);
+    pub fn read_note(&self, paths: &Paths) -> anyhow::Result<NoteLedger<T>> {
+        let ledger = self.note_repository.read_note(paths)?;
+        return Ok(ledger);
     }
 
     pub fn edit_note(&self, paths: &Paths, line: usize, message: String) -> anyhow::Result<()> {
-        let mut actual_note = read_actual_note(paths)?;
-        let opaque_note = read_opaque_note(paths)?;
-
-        return if let Some(message_found) = opaque_note.find(line) {
-            let uuid = &message_found.uuid;
-            for message_to_update in &mut actual_note.messages {
-                if message_to_update.uuid == *uuid {
-                    message_to_update.message = message.clone();
-                    message_to_update.updated_at = chrono::Utc::now();
-                }
-            }
-
-            write_note(paths, &actual_note)?;
+        let mut ledger = self.note_repository.read_note(paths)?;
+        return if let Some(uuid) = ledger.opaque_uuid(line) {
+            ledger.edit(uuid, message);
+            self.note_repository.write_note(paths, &ledger.note())?;
             Ok(())
         } else {
-            Err(anyhow!(
-                "no comment found for line {} in {}. consider to use `add` instead.",
-                line + 1,
-                paths
-            ))
+            Err(anyhow!("no comment found for line {} in {}. consider to use `add` instead.", line + 1, paths))
         };
     }
 
     pub fn delete_note(&self, paths: &Paths, line: usize) -> anyhow::Result<()> {
-        let mut actual_note = read_actual_note(paths)?;
-        let opaque_note = read_opaque_note(paths)?;
+        let mut ledger = self.note_repository.read_note(paths)?;
 
-        return if let Some(message_found) = opaque_note.find(line) {
-            let uuid = &message_found.uuid;
-            let x: Vec<Message> = actual_note
-                .messages
-                .into_iter()
-                .filter(|m| m.uuid != *uuid)
-                .collect();
-            actual_note.messages = x;
-
-            write_note(paths, &actual_note)?;
+        return if let Some(uuid) = ledger.opaque_uuid(line) {
+            ledger.delete(uuid);
+            self.note_repository.write_note(paths, &ledger.note())?;
             Ok(())
         } else {
-            Err(anyhow!(format!(
-                "no comment found for line {} in {:?}",
-                line + 1,
-                paths
-            )))
+            Err(anyhow!(format!("no comment found for line {} in {:?}",line + 1,paths)))
         };
     }
 }
@@ -86,7 +62,6 @@ impl NoteHandler {
 #[cfg(test)]
 mod tests {
     use crate::handlers::NoteHandler;
-    use crate::io::read_actual_note;
     use crate::note::Note;
     use crate::path::PathResolver;
     use crate::testlib::TestRepo;
@@ -105,7 +80,7 @@ mod tests {
         // todo : need assert to test if the note is added correctly
         let note_path = paths.note(&Note::get_id(&paths.relative())?)?;
         assert!(note_path.exists());
-        let note = read_actual_note(&paths)?;
+        let note = read_note(&paths)?;
         println!("{:?}", note);
         assert_eq!(&note.reference, paths.relative());
         assert_eq!(note.messages.len(), 1usize);
@@ -147,7 +122,7 @@ mod tests {
         note_handler.add_note(&paths, 1, "hello".to_string())?;
         let note_path = paths.note(&Note::get_id(&paths.relative())?)?;
         assert!(note_path.exists());
-        let note = read_actual_note(&paths)?;
+        let note = read_note(&paths)?;
         println!("{:?}", note);
         note_handler.edit_note(&paths, 1, "world".to_string())?;
 

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Context};
 
-use crate::libgit::execute_git_command;
+use crate::libgit::Libgit;
 
 const NOTE_PATH: &'static str = ".git/notes";
 
@@ -16,8 +16,11 @@ pub struct PathResolver {
 }
 
 impl PathResolver {
-    pub fn from_input(current_path: &Path) -> anyhow::Result<Self> {
-        let root = execute_git_command(current_path, vec!["rev-parse", "--show-toplevel"])?
+    pub fn from_input<T>(current_path: &Path, libgit: &T) -> anyhow::Result<Self>
+    where
+        T: Libgit
+    {
+        let root = libgit.execute_git_command(current_path, vec!["rev-parse", "--show-toplevel"])?
             .parse::<PathBuf>()
             .map_err(|e| anyhow!("Failed to parse path: {}", e))?;
         let resolver = PathResolver { root };
@@ -65,10 +68,11 @@ impl PathResolver {
 ///
 /// e.g. When repository path is `/foo` and target file located at `/foo/bar/baz.txt`, then
 /// - root : `/foo`
-/// - relative : `/bar/baz.txt`
+/// - relative : `bar/baz.txt`
+/// - canonical : `/foo/bar/baz.txt`
 /// - home : `/foo/.git/notes`
 /// - note : `/foo/.git/notes/12/34567890`
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Paths {
     root: PathBuf,
     relative: PathBuf,
@@ -127,6 +131,8 @@ fn ensure_dir(dir_path: &PathBuf) -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
+
+    use crate::libgit::ProcessLibgit;
     use crate::path::PathResolver;
     use crate::testlib::{AnyToString, TestRepo};
 
@@ -134,7 +140,7 @@ mod tests {
     fn path_resolver() -> anyhow::Result<()> {
         let repo = TestRepo::new();
         repo.create_file("foo.txt", Some("hello world"))?;
-        let resolver = PathResolver::from_input(repo.path())?;
+        let resolver = PathResolver::from_input(repo.path(), &ProcessLibgit)?;
         println!("root = {:?}", resolver.root);
         Ok(())
     }
@@ -143,7 +149,7 @@ mod tests {
     pub fn resolve() -> anyhow::Result<()> {
         let repo = TestRepo::new();
         let path = repo.create_file("foo.txt", Some("hello world"))?;
-        let resolver = PathResolver::from_input(repo.path())?;
+        let resolver = PathResolver::from_input(repo.path(), &ProcessLibgit)?;
         let paths = resolver.resolve(&path.str())?;
         assert_eq!(paths.root(), repo.path());
         assert_eq!(paths.canonical(), path);

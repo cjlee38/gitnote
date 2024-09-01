@@ -1,23 +1,27 @@
+use std::ops::Deref;
 use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
 use crate::handlers::NoteHandler;
-use crate::libgit::{find_volatile_git_blob, GitBlob};
+use crate::libgit::{GitBlob, Libgit};
 use crate::note::{Message, Note};
 use crate::path::PathResolver;
 use crate::stdio::write_out;
 
-pub struct Cli {
-    note_handler: NoteHandler,
+pub struct Cli<T>
+where
+    T: Libgit,
+{
+    note_handler: NoteHandler<T>,
     path_resolver: PathResolver,
 }
 
-impl Cli {
-    pub fn new(note_handler: NoteHandler, path_resolver: PathResolver) -> Self {
-        Self {
-            note_handler,
-            path_resolver,
-        }
+impl<T> Cli<T>
+where
+    T: Libgit,
+{
+    pub fn new(note_handler: NoteHandler<T>, path_resolver: PathResolver) -> Self {
+        Self { note_handler, path_resolver }
     }
 
     pub fn add_note(&self, file_name: String, line: usize, message: String) -> anyhow::Result<()> {
@@ -33,20 +37,20 @@ impl Cli {
 
     pub fn read_note(&self, file_name: String, formatted: bool) -> anyhow::Result<()> {
         let paths = self.path_resolver.resolve(&file_name)?;
-        let note = self.note_handler.read_note(&paths)?;
+        let ledger = self.note_handler.read_note(&paths)?;
         // TODO : This is a temporary solution to provide a formatted output
         //      for the note. This should be replaced when JNI is implemented.
         if formatted {
-            let note_str = serde_json::to_string_pretty(&note)?;
+            let note_str = serde_json::to_string_pretty(&ledger.note)?;
             write_out(&note_str);
             return Ok(());
         }
-        let blob = find_volatile_git_blob(&paths)?;
-        self.pretty_print(note, blob)?;
+        let blob = ledger.git_blob()?;
+        self.pretty_print(ledger.note().deref(), blob)?;
         Ok(())
     }
 
-    fn pretty_print(&self, note: Note, blob: GitBlob) -> anyhow::Result<()> {
+    fn pretty_print(&self, note: &Note, blob: GitBlob) -> anyhow::Result<()> {
         blob.content.lines()
             .enumerate()
             .for_each(|(line, row)| {
@@ -79,8 +83,8 @@ impl Cli {
                 message_lines.iter()
                     .skip(1)
                     .for_each(|line| println!("{:width$} {}", "", line.red(), width = padding + 2),
-            );
-        });
+                    );
+            });
     }
 
     pub fn edit_note(&self, file_name: String, line: usize, message: String) -> anyhow::Result<()> {
