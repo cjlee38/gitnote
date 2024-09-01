@@ -20,6 +20,7 @@ where
     pub fn new(note_repository: NoteRepository<T>) -> Self {
         NoteHandler { note_repository }
     }
+
     pub fn add_note(&self, paths: &Paths, line: usize, message: String) -> anyhow::Result<()> {
         let mut ledger = self.note_repository.read_note(paths)?;
         if ledger.opaque_exists(line) {
@@ -38,6 +39,7 @@ where
     pub fn edit_note(&self, paths: &Paths, line: usize, message: String) -> anyhow::Result<()> {
         let mut ledger = self.note_repository.read_note(paths)?;
         return if let Some(uuid) = ledger.opaque_uuid(line) {
+            println!("editing message found uuid {}", uuid);
             ledger.edit(uuid, message);
             self.note_repository.write_note(paths, &ledger.note())?;
             Ok(())
@@ -61,29 +63,49 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::diff::SimilarGitDiffer;
     use crate::handlers::NoteHandler;
+    use crate::io::NoteRepository;
+    use crate::libgit::{Libgit, ProcessLibgit};
     use crate::note::Note;
-    use crate::path::PathResolver;
+    use crate::path::{PathResolver, Paths};
     use crate::testlib::TestRepo;
+
+    struct Sut {
+        repo: TestRepo,
+        paths: Paths,
+        note_handler: NoteHandler<ProcessLibgit<SimilarGitDiffer>>,
+    }
+
+    impl Sut {
+        fn setup(content: &str) -> anyhow::Result<Self> {
+            let repo = TestRepo::new();
+            let path = repo.create_file("test.txt", Some(content))?;
+            let libgit = ProcessLibgit::new(SimilarGitDiffer);
+            let path_resolver = PathResolver::from_input(repo.path(), &libgit)?;
+
+            let paths = path_resolver.resolve(&"test.txt".to_string())?;
+            let repository = NoteRepository::new(libgit);
+            let note_handler = NoteHandler::new(repository);
+            Ok(Sut { repo, paths, note_handler })
+        }
+    }
 
     #[test]
     fn test_add_note() -> anyhow::Result<()> {
         // given
-        let repo = TestRepo::new();
-        let path = repo.create_file("test.txt", Some("foo\nbar\nbaz"))?;
-        let path_resolver = PathResolver::from_input(repo.path())?;
+        let sut = Sut::setup("foo\nbar\nbaz")?;
 
-        let paths = path_resolver.resolve(&"test.txt".to_string())?;
-        let note_handler = NoteHandler;
-        note_handler.add_note(&paths, 1, "hello".to_string())?;
+        // when
+        sut.note_handler.add_note(&sut.paths, 1, "hello".to_string())?;
 
-        // todo : need assert to test if the note is added correctly
-        let note_path = paths.note(&Note::get_id(&paths.relative())?)?;
+        // then
+        let note_path = sut.paths.note(&Note::get_id(&sut.paths.relative())?)?;
         assert!(note_path.exists());
-        let note = read_note(&paths)?;
-        println!("{:?}", note);
-        assert_eq!(&note.reference, paths.relative());
-        assert_eq!(note.messages.len(), 1usize);
+
+        let note: Note = sut.repo.read_note(&note_path)?;
+        assert_eq!(&note.reference, sut.paths.relative());
+        assert_eq!(note.messages.len(), 1);
         let message = &note.messages[0];
         assert_eq!(message.message, "hello");
         assert_eq!(message.line, 1);
@@ -92,60 +114,66 @@ mod tests {
     }
 
     #[test]
-    fn read_note() -> anyhow::Result<()> {
+    fn test_read_note() -> anyhow::Result<()> {
         // given
-        let repo = TestRepo::new();
-        let path = repo.create_file("test.txt", Some("foo\nbar\nbaz"))?;
-        let path_resolver = PathResolver::from_input(repo.path())?;
-        let paths = path_resolver.resolve(&"test.txt".to_string())?;
-        let note_handler = NoteHandler;
+        let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        note_handler.add_note(&paths, 1, "hello".to_string())?;
-        let x = note_handler.read_note(&paths)?;
+        sut.note_handler.add_note(&sut.paths, 1, "hello".to_string())?;
+        let ledger = sut.note_handler.read_note(&sut.paths)?;
 
-        // todo : need assert to test if the note is read correctly
         // then
+        let note = ledger.note();
+        assert_eq!(&note.reference, sut.paths.relative());
+        assert_eq!(note.messages.len(), 1);
+        let message = &note.messages[0];
+        assert_eq!(message.message, "hello");
+        assert_eq!(message.line, 1);
+        assert_eq!(message.snippet, "bar");
         Ok(())
     }
 
     #[test]
     fn edit_note() -> anyhow::Result<()> {
         // given
-        let repo = TestRepo::new();
-        let path = repo.create_file("test.txt", Some("foo\nbar\nbaz"))?;
-        let path_resolver = PathResolver::from_input(repo.path())?;
-        let paths = path_resolver.resolve(&"test.txt".to_string())?;
+        let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        let note_handler = NoteHandler;
-        note_handler.add_note(&paths, 1, "hello".to_string())?;
-        let note_path = paths.note(&Note::get_id(&paths.relative())?)?;
-        assert!(note_path.exists());
-        let note = read_note(&paths)?;
-        println!("{:?}", note);
-        note_handler.edit_note(&paths, 1, "world".to_string())?;
+        sut.note_handler.add_note(&sut.paths, 1, "hello".to_string())?;
+        sut.note_handler.edit_note(&sut.paths, 1, "world".to_string())?;
 
-        // todo : need assert to test if the note is edited correctly
         // then
+        let note_path = sut.paths.note(&Note::get_id(&sut.paths.relative())?)?;
+        assert!(note_path.exists());
+
+        let note: Note = sut.repo.read_note(&note_path)?;
+        assert_eq!(&note.reference, sut.paths.relative());
+        assert_eq!(note.messages.len(), 1);
+        let message = &note.messages[0];
+        assert_eq!(message.message, "world");
+        assert_eq!(message.line, 1);
+        assert_eq!(message.snippet, "bar");
+
         Ok(())
     }
 
     #[test]
     fn delete_note() -> anyhow::Result<()> {
         // given
-        let repo = TestRepo::new();
-        let path = repo.create_file("test.txt", Some("foo\nbar\nbaz"))?;
-        let path_resolver = PathResolver::from_input(repo.path())?;
-        let paths = path_resolver.resolve(&"test.txt".to_string())?;
+        let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        let note_handler = NoteHandler;
-        note_handler.add_note(&paths, 1, "hello".to_string())?;
-        note_handler.delete_note(&paths, 1)?;
+        sut.note_handler.add_note(&sut.paths, 1, "hello".to_string())?;
+        sut.note_handler.delete_note(&sut.paths, 1)?;
 
-        // todo : need assert to test if the note is deleted correctly
         // then
+        let note_path = sut.paths.note(&Note::get_id(&sut.paths.relative())?)?;
+        assert!(note_path.exists());
+
+        let note: Note = sut.repo.read_note(&note_path)?;
+        assert_eq!(&note.reference, sut.paths.relative());
+        assert_eq!(note.messages.len(), 0);
+
         Ok(())
     }
 }

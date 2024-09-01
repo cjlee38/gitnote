@@ -131,6 +131,7 @@ fn ensure_dir(dir_path: &PathBuf) -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
+    use crate::diff::SimilarGitDiffer;
 
     use crate::libgit::ProcessLibgit;
     use crate::path::PathResolver;
@@ -140,7 +141,7 @@ mod tests {
     fn path_resolver() -> anyhow::Result<()> {
         let repo = TestRepo::new();
         repo.create_file("foo.txt", Some("hello world"))?;
-        let resolver = PathResolver::from_input(repo.path(), &ProcessLibgit)?;
+        let resolver = PathResolver::from_input(repo.path(), &ProcessLibgit::new(SimilarGitDiffer))?;
         println!("root = {:?}", resolver.root);
         Ok(())
     }
@@ -149,7 +150,7 @@ mod tests {
     pub fn resolve() -> anyhow::Result<()> {
         let repo = TestRepo::new();
         let path = repo.create_file("foo.txt", Some("hello world"))?;
-        let resolver = PathResolver::from_input(repo.path(), &ProcessLibgit)?;
+        let resolver = PathResolver::from_input(repo.path(), &ProcessLibgit::new(SimilarGitDiffer))?;
         let paths = resolver.resolve(&path.str())?;
         assert_eq!(paths.root(), repo.path());
         assert_eq!(paths.canonical(), path);

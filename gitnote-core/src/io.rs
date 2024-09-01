@@ -48,7 +48,7 @@ where
                 let mut diff_model = DiffModel::of(m);
                 self.libgit.diff(&old_content, &new_blob.content, &mut diff_model);
                 if diff_model.valid {
-                    Some(Message::new(&new_blob, diff_model.line, m.message.clone()).ok()?)
+                    Some(m.copied(diff_model.line, new_blob.id.clone()))
                 } else {
                     None
                 }
@@ -109,13 +109,6 @@ impl<T> NoteRepository<T> where T: Libgit {
         return Ok(());
     }
 
-    // pub fn create_note(&self, paths: &Paths) -> anyhow::Result<NoteLedger<T>> {
-    //     let id = Note::get_id(paths.relative())?;
-    //     let new = Note::new(&id, paths.relative());
-    //     self.write_note(paths, &new)?;
-    //     return Ok(NoteLedger::new(paths, &self.libgit, new));
-    // }
-
     pub fn read_note(&self, paths: &Paths) -> anyhow::Result<NoteLedger<T>> {
         let ledger = self.do_read_note(paths)?;
         return Ok(ledger);
@@ -137,18 +130,6 @@ impl<T> NoteRepository<T> where T: Libgit {
     }
 }
 
-fn test() {
-    /*
-    repo = noterepo;
-
-    {
-        paths = paths;
-        read_note(paths);
-    }
-
-
-     */
-}
 pub fn read_file_content(paths: &Paths) -> anyhow::Result<String> {
     let file = File::open(paths.canonical())?;
     let mut reader = BufReader::new(file);

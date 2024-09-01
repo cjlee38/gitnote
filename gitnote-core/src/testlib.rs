@@ -1,12 +1,13 @@
 use std::fs::File;
-use std::io::Write;
-use std::path::PathBuf;
+use std::io::{BufReader, Read, Write};
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::from_utf8;
 use std::string::ToString;
 
 use anyhow::{anyhow, Error};
 use tempfile::tempdir_in;
+use crate::path::Paths;
 
 pub struct TestRepo {
     _dir: tempfile::TempDir, // holds tempdir ref to delay cleanup
@@ -49,6 +50,18 @@ impl TestRepo {
             file.write_all(content.as_bytes())?;
         }
         Ok(path)
+    }
+
+    pub fn read_file(&self, path: &Path) -> anyhow::Result<String> {
+        let file = File::open(path)?;
+        let mut reader = BufReader::new(file);
+        let mut content = String::new();
+        reader.read_to_string(&mut content)?;
+        Ok(content)
+    }
+
+    pub fn read_note<T>(&self, path: &Path) -> anyhow::Result<T> where T: serde::de::DeserializeOwned {
+        return Ok(serde_json::from_reader(BufReader::new(File::open(path)?))?);
     }
 
     pub fn path(&self) -> &PathBuf {

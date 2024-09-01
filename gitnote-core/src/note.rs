@@ -79,7 +79,7 @@ impl Message {
         })
     }
 
-    pub fn copy(&self, line: usize, oid: String) -> Self {
+    pub fn copied(&self, line: usize, oid: String) -> Self {
         Message {
             uuid: self.uuid.clone(),
             oid,
