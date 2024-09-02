@@ -1,16 +1,14 @@
 #!/bin/bash
+# Used for local builds. This script is not used in the CI/CD pipeline.
 
-# Declare an array for targets and binaries
 targets=(
   "aarch64-apple-darwin git-note"
   "x86_64-pc-windows-gnu git-note.exe"
   "x86_64-unknown-linux-gnu git-note"
 )
 
-# Iterate through the array
 for target_info in "${targets[@]}"
 do
-  # Split the target_info string into target and binary
   IFS=' ' read -r target binary <<< "$target_info"
 
   echo "Copy for target: $target"

@@ -1,4 +1,5 @@
 #!/bin/bash
+# Used for local builds. This script is not used in the CI/CD pipeline.
 
 targets=(
   "aarch64-apple-darwin"
