@@ -18,7 +18,7 @@ pub struct TestRepo {
 impl TestRepo {
     pub fn new() -> Self {
         let _dir = tempdir_in(".").unwrap();
-        let path = _dir.path().to_path_buf();
+        let path = _dir.path().to_path_buf().canonicalize().unwrap();
         let repo = Self { _dir, path };
         repo.command("git init").expect("Failed to initialize git repository");
         repo
