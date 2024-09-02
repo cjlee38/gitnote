@@ -21,19 +21,15 @@ jobs:
           - name: linux-amd64
             runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            command: cross
           - name: win-amd64
             runner: windows-latest
-            target: x86_64-pc-windows-gnu
-            command: cross
+            target: x86_64-pc-windows-msvc
           - name: macos-amd64
             runner: macos-latest
             target: x86_64-apple-darwin
-            command: cross
           - name: macos-arm64
             runner: macos-latest
             target: aarch64-apple-darwin
-            command: cross
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,15 +37,9 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install Cross
-        if: matrix.command == 'cross'
-        shell: bash
-        run: |
-          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-          cargo binstall --no-confirm cross
       - name: Build Binary
-        working-directory: ./gitnote-core
-        run: ${{ matrix.command }} build --verbose --locked --release --target ${{ matrix.target }}
+        run: cargo build --verbose --locked --release --target ${{ matrix.target }}
+
       - name: Run tests
         working-directory: ./gitnote-core
-        run: ${{ matrix.command }} test --verbose
+        run: cargo test --verbose
