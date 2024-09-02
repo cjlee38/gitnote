@@ -24,7 +24,8 @@ impl PathResolver {
         let current = current_path.to_path_buf();
         let root = libgit.execute_git_command(current_path, vec!["rev-parse", "--show-toplevel"])?
             .parse::<PathBuf>()
-            .map_err(|e| anyhow!("Failed to parse path: {}", e))?;
+            .map_err(|e| anyhow!("Failed to parse path: {}", e))?
+            .canonicalize()?;
 
         let resolver = PathResolver { current, root };
         resolver.initialize()?;
