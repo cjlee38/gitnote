@@ -15,6 +15,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - name: linux-amd64
@@ -23,7 +24,7 @@ jobs:
             command: cross
           - name: win-amd64
             runner: windows-latest
-            target: x86_64-pc-windows-msvc
+            target: x86_64-pc-windows-gnu
             command: cross
           - name: macos-amd64
             runner: macos-latest
