@@ -2,8 +2,9 @@ use anyhow::anyhow;
 use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
-use crate::io::{NoteLedger, NoteRepository};
+use crate::io::NoteRepository;
 use crate::libgit::Libgit;
+use crate::note::NoteLedger;
 use crate::path::Paths;
 
 pub struct NoteHandler<T>
