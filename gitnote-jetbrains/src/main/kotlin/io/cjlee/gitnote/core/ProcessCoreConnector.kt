@@ -50,7 +50,8 @@ class ProcessCoreConnector(
         private val BINARY_LOCATION = System.getProperty("java.io.tmpdir") + "git-note"
         val COMMAND: Array<String>
 
-        // todo : when development mode, use git-note from system, not resources
+        private val isDevelopment = System.getProperty("gitnote.developmentPhase", "false").toBoolean()
+
         init {
             val classLoader = this::class.java.classLoader
             val file = File(BINARY_LOCATION)
@@ -58,7 +59,7 @@ class ProcessCoreConnector(
             val os = determineOs()
             FileUtils.copyURLToFile(classLoader.getResource(RESOURCE_LOCATION + os.binary), file)
 
-            COMMAND = if (!file.setExecutable(true)) {
+            COMMAND = if (!file.setExecutable(true) || isDevelopment) {
                 arrayOf("git", "note")
             } else {
                 arrayOf(BINARY_LOCATION)
