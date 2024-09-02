@@ -7,18 +7,43 @@ on:
     branches: [ "master" ]
 
 env:
+  PROJECT_NAME: gitnote
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
+    runs-on: ${{ matrix.runner }}
 
-    runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        include:
+          - name: linux-amd64
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - name: win-amd64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+          - name: macos-amd64
+            runner: macos-latest
+            target: x86_64-apple-darwin
+          - name: macos-arm64
+            runner: macos-latest
+            target: aarch64-apple-darwin
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      working-directory: ./gitnote-core
-      run: cargo build --verbose
-    - name: Run tests
-      working-directory: ./gitnote-core
-      run: cargo test --verbose
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Cross
+        if: matrix.command == 'cross'
+        shell: bash
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+          cargo binstall --no-confirm cross
+      - name: Build Binary
+        run: ${{ matrix.command }} build --verbose --locked --release --target ${{ matrix.target }}
+      - name: Run tests
+        working-directory: ./gitnote-core
+        run: ${{ matrix.command }} test --verbose
