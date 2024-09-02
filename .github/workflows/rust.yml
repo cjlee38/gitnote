@@ -38,6 +38,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build Binary
+        working-directory: ./gitnote-core
         run: cargo build --verbose --locked --release --target ${{ matrix.target }}
 
       - name: Run tests
