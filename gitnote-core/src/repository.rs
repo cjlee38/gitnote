@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::BufReader;
 
 use crate::diff::GitDiffer;
 use crate::libgit::Libgit;
@@ -41,12 +41,4 @@ impl<T> NoteRepository<T> where T: Libgit {
         };
         return Ok(NoteLedger::new(paths, &self.libgit, note));
     }
-}
-
-pub fn read_file_content(paths: &Paths) -> anyhow::Result<String> {
-    let file = File::open(paths.canonical())?;
-    let mut reader = BufReader::new(file);
-    let mut content = String::new();
-    reader.read_to_string(&mut content)?;
-    return Ok(content);
 }

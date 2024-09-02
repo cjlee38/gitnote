@@ -87,14 +87,14 @@ where
             .map(|m| m.uuid.clone());
     }
 
-    pub fn append(&mut self, line: usize, message: String) -> anyhow::Result<()> {
+    pub fn append(&self, line: usize, message: String) -> anyhow::Result<()> {
         let blob = self.git_blob()?;
         let message = Message::new(&blob, line, message)?;
         self.note.borrow_mut().append(message)?;
         return Ok(());
     }
 
-    pub fn delete(&mut self, uuid: String) {
+    pub fn delete(&self, uuid: String) {
         let mut note_ref = self.note.borrow_mut();
         note_ref.messages.retain(|m| m.uuid != uuid);
     }

@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
-use crate::io::NoteRepository;
+use crate::repository::NoteRepository;
 use crate::libgit::Libgit;
 use crate::note::NoteLedger;
 use crate::path::Paths;
@@ -23,7 +23,7 @@ where
     }
 
     pub fn add_note(&self, paths: &Paths, line: usize, message: String) -> anyhow::Result<()> {
-        let mut ledger = self.note_repository.read_note(paths)?;
+        let ledger = self.note_repository.read_note(paths)?;
         if ledger.opaque_exists(line) {
             return Err(anyhow!("comment already exists for line {} in {}. consider to use `edit` instead.", line + 1, paths));
         }
@@ -38,7 +38,7 @@ where
     }
 
     pub fn edit_note(&self, paths: &Paths, line: usize, message: String) -> anyhow::Result<()> {
-        let mut ledger = self.note_repository.read_note(paths)?;
+        let ledger = self.note_repository.read_note(paths)?;
         return if let Some(uuid) = ledger.opaque_uuid(line) {
             println!("editing message found uuid {}", uuid);
             ledger.edit(uuid, message);
@@ -50,7 +50,7 @@ where
     }
 
     pub fn delete_note(&self, paths: &Paths, line: usize) -> anyhow::Result<()> {
-        let mut ledger = self.note_repository.read_note(paths)?;
+        let ledger = self.note_repository.read_note(paths)?;
 
         return if let Some(uuid) = ledger.opaque_uuid(line) {
             ledger.delete(uuid);
@@ -66,7 +66,7 @@ where
 mod tests {
     use crate::diff::SimilarGitDiffer;
     use crate::handlers::NoteHandler;
-    use crate::io::NoteRepository;
+    use crate::repository::NoteRepository;
     use crate::libgit::{Libgit, ProcessLibgit};
     use crate::note::Note;
     use crate::path::{PathResolver, Paths};

@@ -1,10 +1,11 @@
+use std::fs::File;
+use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{anyhow, Context};
 
 use crate::diff::{DiffModel, GitDiffer};
-use crate::io::read_file_content;
 use crate::path::Paths;
 use crate::utils::PathBufExt;
 
@@ -47,6 +48,14 @@ where
     pub fn new(differ: T) -> Self {
         Self { differ }
     }
+
+    fn read_file_content(&self, paths: &Paths) -> anyhow::Result<String> {
+        let file = File::open(paths.canonical())?;
+        let mut reader = BufReader::new(file);
+        let mut content = String::new();
+        reader.read_to_string(&mut content)?;
+        return Ok(content);
+    }
 }
 
 impl<T> Libgit for ProcessLibgit<T>
@@ -58,7 +67,7 @@ where
             paths.root(),
             vec!["hash-object", "-w", paths.relative().try_to_str()?],
         )?;
-        let content = read_file_content(paths)?;
+        let content = self.read_file_content(paths)?;
         Ok(GitBlob {
             id,
             file_path: paths.relative().clone(),

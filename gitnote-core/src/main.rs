@@ -4,14 +4,14 @@ use std::process::ExitCode;
 use crate::cli::Cli;
 use crate::diff::SimilarGitDiffer;
 use crate::handlers::NoteHandler;
-use crate::io::NoteRepository;
+use crate::repository::NoteRepository;
 use crate::libgit::ProcessLibgit;
 use crate::path::PathResolver;
 
 mod argument;
 mod handlers;
 mod libgit;
-mod io;
+mod repository;
 mod stdio;
 mod note;
 mod utils;

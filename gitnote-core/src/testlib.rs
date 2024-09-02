@@ -7,8 +7,8 @@ use std::string::ToString;
 
 use anyhow::{anyhow, Error};
 use tempfile::tempdir_in;
+
 use crate::note::Note;
-use crate::path::Paths;
 
 pub struct TestRepo {
     _dir: tempfile::TempDir, // holds tempdir ref to delay cleanup
