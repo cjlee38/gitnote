@@ -27,7 +27,7 @@ where
             return Err(anyhow!("comment already exists for line {} in {}. consider to use `edit` instead.", line + 1, paths));
         }
         ledger.append(line, message)?;
-        self.note_repository.write_note(paths, &ledger.note())?;
+        self.note_repository.write_note(paths, &ledger.plain_note())?;
         return Ok(());
     }
 
@@ -41,7 +41,7 @@ where
         return if let Some(uuid) = ledger.opaque_uuid(line) {
             println!("editing message found uuid {}", uuid);
             ledger.edit(uuid, message);
-            self.note_repository.write_note(paths, &ledger.note())?;
+            self.note_repository.write_note(paths, &ledger.plain_note())?;
             Ok(())
         } else {
             Err(anyhow!("no comment found for line {} in {}. consider to use `add` instead.", line + 1, paths))
@@ -53,7 +53,7 @@ where
 
         return if let Some(uuid) = ledger.opaque_uuid(line) {
             ledger.delete(uuid);
-            self.note_repository.write_note(paths, &ledger.note())?;
+            self.note_repository.write_note(paths, &ledger.plain_note())?;
             Ok(())
         } else {
             Err(anyhow!(format!("no comment found for line {} in {:?}",line + 1,paths)))
@@ -123,7 +123,7 @@ mod tests {
         let ledger = sut.note_handler.read_note(&sut.paths)?;
 
         // then
-        let note = ledger.note();
+        let note = ledger.plain_note();
         assert_eq!(&note.reference, sut.paths.relative());
         assert_eq!(note.messages.len(), 1);
         let message = &note.messages[0];

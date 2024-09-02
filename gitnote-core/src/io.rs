@@ -13,9 +13,9 @@ pub struct NoteLedger<'p, T>
 where
     T: Libgit,
 {
-    pub paths: Paths,
-    pub libgit: &'p T,
-    pub note: RefCell<Note>,
+    paths: Paths,
+    libgit: &'p T,
+    note: RefCell<Note>,
 }
 
 // TODO : What if opaque line duplicated ?
@@ -27,8 +27,14 @@ where
         Self { paths: paths.clone(), libgit, note: RefCell::new(note) }
     }
 
-    pub fn note(&self) -> Ref<Note> {
+    pub fn plain_note(&self) -> Ref<Note> {
         return self.note.borrow();
+    }
+
+    pub fn opaque_note(&self) -> Note {
+        let note = self.note.borrow();
+        let messages = self.opaque_messages();
+        return Note::from(&note.id, &note.reference, messages);
     }
 
     fn plain_messages(&self) -> Ref<Vec<Message>> {
@@ -36,14 +42,14 @@ where
         return Ref::map(note_ref, |note_ref| &note_ref.messages);
     }
 
-    // todo : 이거 이상한데...
+    // todo : review this method.... it is not clear
     /// Read note from file and filter out invalid messages
     fn opaque_messages(&self) -> Vec<Message> {
         let plain = self.plain_messages();
-        let x = plain.iter()
+        return plain.iter()
             .filter_map(|m| {
                 let old_content = self.libgit.read_content(&self.paths, &m.oid).ok()?;
-                let new_blob = self.libgit.find_volatile_git_blob(&self.paths).ok()?;
+                let new_blob = self.git_blob().ok()?;
 
                 let mut diff_model = DiffModel::of(m);
                 self.libgit.diff(&old_content, &new_blob.content, &mut diff_model);
@@ -53,7 +59,6 @@ where
                     None
                 }
             }).collect();
-        return x;
     }
 
     pub fn git_blob(&self) -> anyhow::Result<GitBlob> {
@@ -75,7 +80,7 @@ where
     }
 
     pub fn append(&mut self, line: usize, message: String) -> anyhow::Result<()> {
-        let blob = self.libgit.find_volatile_git_blob(&self.paths)?;
+        let blob = self.git_blob()?;
         let message = Message::new(&blob, line, message)?;
         self.note.borrow_mut().append(message)?;
         return Ok(());

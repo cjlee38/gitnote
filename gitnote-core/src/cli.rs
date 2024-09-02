@@ -40,13 +40,14 @@ where
         let ledger = self.note_handler.read_note(&paths)?;
         // TODO : This is a temporary solution to provide a formatted output
         //      for the note. This should be replaced when JNI is implemented.
+        let note = ledger.opaque_note();
         if formatted {
-            let note_str = serde_json::to_string_pretty(&ledger.note)?;
+            let note_str = serde_json::to_string_pretty(&note)?;
             write_out(&note_str);
             return Ok(());
         }
         let blob = ledger.git_blob()?;
-        self.pretty_print(ledger.note().deref(), blob)?;
+        self.pretty_print(&note, blob)?;
         Ok(())
     }
 

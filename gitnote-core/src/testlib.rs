@@ -7,6 +7,7 @@ use std::string::ToString;
 
 use anyhow::{anyhow, Error};
 use tempfile::tempdir_in;
+use crate::note::Note;
 use crate::path::Paths;
 
 pub struct TestRepo {
@@ -43,6 +44,12 @@ impl TestRepo {
         }).ok_or(anyhow!(stdout))
     }
 
+    pub fn create_dir(&self, dirname: &str) -> anyhow::Result<PathBuf> {
+        let path = self.path.join(dirname);
+        std::fs::create_dir(&path)?;
+        Ok(path)
+    }
+
     pub fn create_file(&self, filename: &str, content: Option<&str>) -> anyhow::Result<PathBuf> {
         let path = self.path.join(filename);
         let mut file = File::create(&path).expect("Failed to create file");
@@ -60,7 +67,7 @@ impl TestRepo {
         Ok(content)
     }
 
-    pub fn read_note<T>(&self, path: &Path) -> anyhow::Result<T> where T: serde::de::DeserializeOwned {
+    pub fn read_note(&self, path: &Path) -> anyhow::Result<Note> {
         return Ok(serde_json::from_reader(BufReader::new(File::open(path)?))?);
     }
 

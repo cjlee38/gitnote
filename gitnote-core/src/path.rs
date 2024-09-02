@@ -12,6 +12,7 @@ const NOTE_PATH: &'static str = ".git/notes";
 
 #[derive(Debug)]
 pub struct PathResolver {
+    current: PathBuf,
     root: PathBuf,
 }
 
@@ -20,10 +21,12 @@ impl PathResolver {
     where
         T: Libgit
     {
+        let current = current_path.to_path_buf();
         let root = libgit.execute_git_command(current_path, vec!["rev-parse", "--show-toplevel"])?
             .parse::<PathBuf>()
             .map_err(|e| anyhow!("Failed to parse path: {}", e))?;
-        let resolver = PathResolver { root };
+
+        let resolver = PathResolver { current, root };
         resolver.initialize()?;
         Ok(resolver)
     }
@@ -41,21 +44,22 @@ impl PathResolver {
     }
 
     pub fn resolve(&self, input: &String) -> anyhow::Result<Paths> {
-        let canonical = PathBuf::from(self.root.join(input))
+        let canonical = PathBuf::from(self.current.join(input))
             .canonicalize()
             .context(format!(
                 "cannot find specified file `{input}` from {:?}.",
-                self.root
+                self.current
             ))?;
-        self.validate_path(&canonical, &self.root)?;
+        self.validate_path(&canonical)?;
         let relative = canonical.strip_prefix(&self.root)?.to_path_buf();
         Ok(Paths::new(self.root.clone(), relative))
     }
 
-    fn validate_path(&self, canonical: &PathBuf, input: &PathBuf) -> anyhow::Result<()> {
-        if !canonical.exists() || !canonical.starts_with(input) {
+    fn validate_path(&self, canonical: &PathBuf) -> anyhow::Result<()> {
+        let root = &self.root;
+        if !canonical.exists() || !canonical.starts_with(root) {
             return Err(anyhow!(
-            "specified file `{canonical:?}` looks like not contained in git repository of `{input:?}`",
+                "specified file `{canonical:?}` looks like not contained in git repository of `{root:?}`",
             ));
         }
         Ok(())
@@ -148,14 +152,37 @@ mod tests {
 
     #[test]
     pub fn resolve() -> anyhow::Result<()> {
+        // given
         let repo = TestRepo::new();
         let path = repo.create_file("foo.txt", Some("hello world"))?;
+
+        // when
         let resolver = PathResolver::from_input(repo.path(), &ProcessLibgit::new(SimilarGitDiffer))?;
         let paths = resolver.resolve(&path.str())?;
+
+        // then
         assert_eq!(paths.root(), repo.path());
         assert_eq!(paths.canonical(), path);
         assert_eq!(paths.home()?, repo.path().join(".git/notes"));
         assert_eq!(paths.relative(), &PathBuf::from("foo.txt"));
+        Ok(())
+    }
+
+    #[test]
+    pub fn resolve_in_nested() -> anyhow::Result<()> {
+        // given
+        let repo = TestRepo::new();
+        repo.create_dir("foo")?;
+        repo.create_dir("foo/bar")?;
+        let path = repo.create_file("foo/bar/baz.txt", Some("hello world"))?;
+
+        // when
+        let resolver = PathResolver::from_input(&repo.path().join("foo"), &ProcessLibgit::new(SimilarGitDiffer))?;
+        let paths = resolver.resolve(&"./bar/baz.txt".to_string())?;
+        assert_eq!(paths.root(), repo.path());
+        assert_eq!(paths.canonical(), path);
+        assert_eq!(paths.home()?, repo.path().join(".git/notes"));
+        assert_eq!(paths.relative(), &PathBuf::from("foo/bar/baz.txt"));
         Ok(())
     }
 }

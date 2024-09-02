@@ -50,6 +50,7 @@ class ProcessCoreConnector(
         private val BINARY_LOCATION = System.getProperty("java.io.tmpdir") + "git-note"
         val COMMAND: Array<String>
 
+        // todo : when development mode, use git-note from system, not resources
         init {
             val classLoader = this::class.java.classLoader
             val file = File(BINARY_LOCATION)
