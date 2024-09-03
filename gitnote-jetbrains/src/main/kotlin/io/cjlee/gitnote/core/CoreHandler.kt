@@ -10,6 +10,7 @@ class CoreHandler(private val connector: CoreConnector) {
         .registerModule(JavaTimeModule())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
+    // TODO : maybe cache would not be required, thanks to MergingUpdateQueue
     private val cache = NoteCache()
 
     fun read(filePath: String, force: Boolean = false): Note? {

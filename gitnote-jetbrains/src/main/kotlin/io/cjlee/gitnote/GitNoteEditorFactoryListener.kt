@@ -20,7 +20,6 @@ class GitNoteEditorFactoryListener : EditorFactoryListener {
         val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return
         if (!file.isValid || !ProjectRootManager.getInstance(project).fileIndex.isInContent(file)) return
 
-
         val projectPath = findBasePath(file) ?: return
         try {
             val handler = CoreHandlerFactory.get(projectPath)
