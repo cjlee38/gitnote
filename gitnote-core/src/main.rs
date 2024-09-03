@@ -24,14 +24,6 @@ mod path;
 mod testlib;
 mod diff;
 
-struct Cli;
-
-impl Cli {
-    fn handle_note(&self, subcommand: CliSubCommand) {
-
-    }
-}
-
 fn main() {
     let current_dir = env::current_dir().unwrap();
     let libgit = ProcessLibgit::new(SimilarGitDiffer);
@@ -45,6 +37,5 @@ fn main() {
         CliSubCommand::Read(args) => { cli_note_handler.read_note(args)}
         CliSubCommand::Edit(args) => { cli_note_handler.edit_note(args)}
         CliSubCommand::Delete(args) => { cli_note_handler.delete_note(args)}
-        CliSubCommand::Clean => {cli_note_handler.clean_notes() }
     }.unwrap();
 }

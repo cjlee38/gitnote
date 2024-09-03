@@ -12,7 +12,6 @@ pub enum CliSubCommand {
     Read(ReadArgs),
     Edit(EditArgs),
     Delete(DeleteArgs),
-    Clean
 }
 
 #[derive(Debug, Args)]

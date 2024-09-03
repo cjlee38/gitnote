@@ -42,9 +42,4 @@ impl<T> NoteRepository<T> where T: Libgit {
         };
         return Ok(NoteLedger::new(paths, &self.libgit, note));
     }
-
-    pub fn clean_notes(&self, paths: &Paths) -> anyhow::Result<()> {
-        fs::remove_dir_all(paths.home())?;
-        Ok(())
-    }
 }

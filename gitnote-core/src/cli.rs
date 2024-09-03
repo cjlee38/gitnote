@@ -113,17 +113,4 @@ where
         ));
         Ok(())
     }
-
-    pub fn clean_notes(&self) -> anyhow::Result<()> {
-        let input = stdin("[WARNING] Are you sure you want to remove all notes? (y/n)\nRemember that this action is irreversible.");
-        if input.trim() != "y" {
-            stdout_str("Aborted cleaning notes");
-            return Ok(());
-        }
-
-        let paths = self.path_resolver.resolve(&"".to_string())?;
-        self.note_handler.clean_notes(&paths)?;
-        stdout_str("Successfully cleaned all notes");
-        Ok(())
-    }
 }
