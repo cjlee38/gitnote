@@ -100,15 +100,14 @@ impl Paths {
         self.root.join(&self.relative)
     }
 
-    pub fn home(&self) -> anyhow::Result<PathBuf> {
+    pub fn home(&self) -> PathBuf {
         static NOTE_PATH: &'static str = ".git/notes";
 
-        let path = self.root.join(NOTE_PATH);
-        return Ok(path);
+        self.root.join(NOTE_PATH)
     }
 
     pub fn note(&self, id: &String) -> anyhow::Result<PathBuf> {
-        let home = self.home()?;
+        let home = self.home();
         let dir = &id[0..2];
         let file = &id[2..];
         ensure_dir(&home.join(dir))?;
@@ -164,7 +163,7 @@ mod tests {
         // then
         assert_eq!(paths.root(), repo.path());
         assert_eq!(paths.canonical(), path);
-        assert_eq!(paths.home()?, repo.path().join(".git/notes"));
+        assert_eq!(paths.home(), repo.path().join(".git/notes"));
         assert_eq!(paths.relative(), &PathBuf::from("foo.txt"));
         Ok(())
     }
@@ -182,7 +181,7 @@ mod tests {
         let paths = resolver.resolve(&"./bar/baz.txt".to_string())?;
         assert_eq!(paths.root(), repo.path());
         assert_eq!(paths.canonical(), path);
-        assert_eq!(paths.home()?, repo.path().join(".git/notes"));
+        assert_eq!(paths.home(), repo.path().join(".git/notes"));
         assert_eq!(paths.relative(), &PathBuf::from("foo/bar/baz.txt"));
         Ok(())
     }
