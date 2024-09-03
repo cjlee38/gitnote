@@ -11,7 +11,8 @@ pub enum CliSubCommand {
     Add(AddArgs),
     Read(ReadArgs),
     Edit(EditArgs),
-    Delete(DeleteArgs)
+    Delete(DeleteArgs),
+    Clean
 }
 
 #[derive(Debug, Args)]
@@ -49,3 +50,4 @@ pub struct DeleteArgs {
     #[arg(short, long, help = "Specifies the line number to delete")]
     pub line: usize
 }
+

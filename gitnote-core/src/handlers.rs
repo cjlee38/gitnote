@@ -60,6 +60,10 @@ where
             Err(anyhow!(format!("no comment found for line {} in {:?}",line + 1,paths)))
         };
     }
+
+    pub fn clean_notes(&self, paths: &Paths) {
+        self.note_repository.clean_notes(paths)?;
+    }
 }
 
 #[cfg(test)]

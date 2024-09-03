@@ -1,3 +1,4 @@
+use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -40,5 +41,10 @@ impl<T> NoteRepository<T> where T: Libgit {
             note
         };
         return Ok(NoteLedger::new(paths, &self.libgit, note));
+    }
+
+    pub fn clean_notes(&self, paths: &Paths) -> anyhow::Result<()> {
+        fs::remove_dir_all(paths.home())?;
+        Ok(())
     }
 }

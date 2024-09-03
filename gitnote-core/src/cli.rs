@@ -6,9 +6,9 @@ use crate::handlers::NoteHandler;
 use crate::libgit::{GitBlob, Libgit};
 use crate::note::{Message, Note};
 use crate::path::PathResolver;
-use crate::stdio::write_out;
+use crate::stdio::{stdin, stdout, stdout_str};
 
-pub struct Cli<T>
+pub struct CliNoteHandler<T>
 where
     T: Libgit,
 {
@@ -16,7 +16,7 @@ where
     path_resolver: PathResolver,
 }
 
-impl<T> Cli<T>
+impl<T> CliNoteHandler<T>
 where
     T: Libgit,
 {
@@ -43,7 +43,7 @@ where
         let note = ledger.opaque_note();
         if args.formatted {
             let note_str = serde_json::to_string_pretty(&note)?;
-            write_out(&note_str);
+            println!("{}", &note_str);
             return Ok(());
         }
         let blob = ledger.git_blob()?;
@@ -106,11 +106,24 @@ where
 
         let paths = self.path_resolver.resolve(&args.file)?;
         self.note_handler.delete_note(&paths, line)?;
-        write_out(&format!(
+        stdout(&format!(
             "Successfully deleted comment for {:?} in range {}",
             &args.file,
             line + 1
         ));
+        Ok(())
+    }
+
+    pub fn clean_notes(&self) -> anyhow::Result<()> {
+        let input = stdin("[WARNING] Are you sure you want to remove all notes? (y/n)\nRemember that this action is irreversible.");
+        if input.trim() != "y" {
+            stdout_str("Aborted cleaning notes");
+            return Ok(());
+        }
+
+        let paths = self.path_resolver.resolve(&"".to_string())?;
+        self.note_handler.clean_notes(&paths)?;
+        stdout_str("Successfully cleaned all notes");
         Ok(())
     }
 }
