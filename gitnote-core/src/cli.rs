@@ -1,5 +1,6 @@
 use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
+use crate::argument::{AddArgs, DeleteArgs, EditArgs, ReadArgs};
 
 use crate::handlers::NoteHandler;
 use crate::libgit::{GitBlob, Libgit};
@@ -23,24 +24,24 @@ where
         Self { note_handler, path_resolver }
     }
 
-    pub fn add_note(&self, file_name: String, line: usize, message: String) -> anyhow::Result<()> {
-        let paths = self.path_resolver.resolve(&file_name)?;
-        self.note_handler.add_note(&paths, line - 1, message)?;
+    pub fn add_note(&self, args: AddArgs) -> anyhow::Result<()> {
+        let paths = self.path_resolver.resolve(&args.file)?;
+        self.note_handler.add_note(&paths, args.line - 1, args.message)?;
         println!(
             "Successfully added comment for {:?} in range {}",
-            &file_name,
-            line
+            &args.file,
+            args.line
         );
         Ok(())
     }
 
-    pub fn read_note(&self, file_name: String, formatted: bool) -> anyhow::Result<()> {
-        let paths = self.path_resolver.resolve(&file_name)?;
+    pub fn read_note(&self, args: ReadArgs) -> anyhow::Result<()> {
+        let paths = self.path_resolver.resolve(&args.file)?;
         let ledger = self.note_handler.read_note(&paths)?;
         // TODO : This is a temporary solution to provide a formatted output
         //      for the note. This should be replaced when JNI is implemented.
         let note = ledger.opaque_note();
-        if formatted {
+        if args.formatted {
             let note_str = serde_json::to_string_pretty(&note)?;
             write_out(&note_str);
             return Ok(());
@@ -87,27 +88,27 @@ where
             });
     }
 
-    pub fn edit_note(&self, file_name: String, line: usize, message: String) -> anyhow::Result<()> {
-        let line = line - 1;
+    pub fn edit_note(&self, args: EditArgs) -> anyhow::Result<()> {
+        let line = args.line - 1;
 
-        let paths = self.path_resolver.resolve(&file_name)?;
-        self.note_handler.edit_note(&paths, line, message)?;
+        let paths = self.path_resolver.resolve(&args.file)?;
+        self.note_handler.edit_note(&paths, line, args.message)?;
         println!(
             "Successfully edited comment for {:?} in range {}",
-            &file_name,
+            &args.file,
             line + 1
         );
         Ok(())
     }
 
-    pub fn delete_note(&self, file_name: String, line: usize) -> anyhow::Result<()> {
-        let line = line - 1;
+    pub fn delete_note(&self, args: DeleteArgs) -> anyhow::Result<()> {
+        let line = args.line - 1;
 
-        let paths = self.path_resolver.resolve(&file_name)?;
+        let paths = self.path_resolver.resolve(&args.file)?;
         self.note_handler.delete_note(&paths, line)?;
         write_out(&format!(
             "Successfully deleted comment for {:?} in range {}",
-            &file_name,
+            &args.file,
             line + 1
         ));
         Ok(())

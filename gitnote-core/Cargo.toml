@@ -18,7 +18,7 @@ path = "src/main.rs"
 readme = "../README.md"
 
 [dependencies]
-clap = { version = "4", features = ["cargo", "wrap_help"] }
+clap = { version = "4", features = ["cargo", "wrap_help", "derive"] }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.115"
 log = "0.4.21"
