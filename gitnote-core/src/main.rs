@@ -1,28 +1,12 @@
 use std::env;
-use std::process::ExitCode;
-
 use clap::Parser;
-
-use crate::argument::{CliCommand, CliSubCommand};
-use crate::cli::CliNoteHandler;
-use crate::diff::SimilarGitDiffer;
-use crate::handlers::NoteHandler;
-use crate::libgit::ProcessLibgit;
-use crate::path::PathResolver;
-use crate::repository::NoteRepository;
-
-mod argument;
-mod handlers;
-mod libgit;
-mod repository;
-mod stdio;
-mod note;
-mod utils;
-mod cli;
-mod path;
-#[cfg(test)]
-mod testlib;
-mod diff;
+use gitnote::argument::{CliCommand, CliSubCommand};
+use gitnote::cli::CliNoteHandler;
+use gitnote::diff::SimilarGitDiffer;
+use gitnote::handlers::NoteHandler;
+use gitnote::libgit::ProcessLibgit;
+use gitnote::path::PathResolver;
+use gitnote::repository::NoteRepository;
 
 fn main() {
     let current_dir = env::current_dir().unwrap();

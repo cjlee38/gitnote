@@ -1,4 +1,3 @@
-use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -7,11 +6,17 @@ use crate::libgit::Libgit;
 use crate::note::{Note, NoteLedger};
 use crate::path::Paths;
 
-pub struct NoteRepository<T> where T: Libgit {
-    libgit: T
+pub struct NoteRepository<T>
+where
+    T: Libgit,
+{
+    libgit: T,
 }
 
-impl<T> NoteRepository<T> where T: Libgit {
+impl<T> NoteRepository<T>
+where
+    T: Libgit,
+{
     pub fn new(libgit: T) -> Self {
         Self { libgit }
     }

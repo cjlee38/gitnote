@@ -2,10 +2,10 @@ use anyhow::anyhow;
 use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
-use crate::repository::NoteRepository;
 use crate::libgit::Libgit;
 use crate::note::NoteLedger;
 use crate::path::Paths;
+use crate::repository::NoteRepository;
 
 pub struct NoteHandler<T>
 where
@@ -66,10 +66,10 @@ where
 mod tests {
     use crate::diff::SimilarGitDiffer;
     use crate::handlers::NoteHandler;
-    use crate::repository::NoteRepository;
     use crate::libgit::{Libgit, ProcessLibgit};
     use crate::note::Note;
     use crate::path::{PathResolver, Paths};
+    use crate::repository::NoteRepository;
     use crate::testlib::TestRepo;
 
     struct Sut {

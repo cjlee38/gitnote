@@ -1,12 +1,12 @@
 use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
-use crate::argument::{AddArgs, DeleteArgs, EditArgs, ReadArgs};
 
+use crate::argument::{AddArgs, DeleteArgs, EditArgs, ReadArgs};
 use crate::handlers::NoteHandler;
 use crate::libgit::{GitBlob, Libgit};
 use crate::note::{Message, Note};
 use crate::path::PathResolver;
-use crate::stdio::{stdin, stdout, stdout_str};
+use crate::stdio::stdout;
 
 pub struct CliNoteHandler<T>
 where
