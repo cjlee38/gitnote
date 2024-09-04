@@ -1,7 +1,5 @@
-
 use clap::Parser;
 
-pub mod argument;
 pub mod handlers;
 pub mod libgit;
 pub mod repository;
@@ -13,3 +11,4 @@ pub mod path;
 #[cfg(test)]
 pub mod testlib;
 pub mod diff;
+pub mod config;

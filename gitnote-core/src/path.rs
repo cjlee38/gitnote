@@ -3,61 +3,55 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use anyhow::{anyhow, Context};
-
-use crate::libgit::Libgit;
 
 const NOTE_PATH: &'static str = ".git/notes";
 
 #[derive(Debug)]
-pub struct PathResolver {
-    current: PathBuf,
-    root: PathBuf,
-}
+pub struct PathResolver;
 
 impl PathResolver {
-    pub fn from_input<T>(current_path: &Path, libgit: &T) -> anyhow::Result<Self>
-    where
-        T: Libgit
-    {
-        let current = current_path.to_path_buf();
-        let root = libgit.execute_git_command(current_path, vec!["rev-parse", "--show-toplevel"])?
-            .parse::<PathBuf>()
-            .map_err(|e| anyhow!("Failed to parse path: {}", e))?
-            .canonicalize()?;
+    pub fn resolve(
+        current_path: &Path,
+        input: &str,
+    ) -> anyhow::Result<Paths> {
+        let root = Self::root_by_recursive(current_path)?;
+        Self::initialize(&root)?;
 
-        let resolver = PathResolver { current, root };
-        resolver.initialize()?;
-        Ok(resolver)
+        let canonical = PathBuf::from(current_path.join(input))
+            .canonicalize()
+            .context(format!("cannot find specified file `{input}` from {:?}.", current_path))?;
+        Self::validate_path(&root, &canonical)?;
+        let relative = canonical.strip_prefix(&root)?.to_path_buf();
+        Ok(Paths::new(root.clone(), relative))
     }
 
-    fn initialize(&self) -> anyhow::Result<()> {
-        let note_path = self.root.join(NOTE_PATH);
+    fn root_by_recursive(current: &Path) -> anyhow::Result<PathBuf> {
+        let mut current = current;
+        while !current.join(".git").exists() {
+            if current.parent().is_none() {
+                return Err(anyhow!("Cannot find git repository from {:?}", current));
+            }
+            current = current.parent().expect("Cannot find parent directory");
+        }
+        Ok(current.to_path_buf())
+    }
+
+    fn initialize(root: &Path) -> anyhow::Result<()> {
+        let note_path = root.join(NOTE_PATH);
         ensure_dir(&note_path)?;
 
         let description = note_path.join("description");
-        if !Path::new(&description).exists() {
+        if !description.exists() {
             let mut description = File::create(&description)?;
             description.write_all("This directory contains notes by `git-note`".as_bytes())?;
         }
         Ok(())
     }
 
-    pub fn resolve(&self, input: &String) -> anyhow::Result<Paths> {
-        let canonical = PathBuf::from(self.current.join(input))
-            .canonicalize()
-            .context(format!(
-                "cannot find specified file `{input}` from {:?}.",
-                self.current
-            ))?;
-        self.validate_path(&canonical)?;
-        let relative = canonical.strip_prefix(&self.root)?.to_path_buf();
-        Ok(Paths::new(self.root.clone(), relative))
-    }
-
-    fn validate_path(&self, canonical: &PathBuf) -> anyhow::Result<()> {
-        let root = &self.root;
+    fn validate_path(root: &PathBuf, canonical: &PathBuf) -> anyhow::Result<()> {
         if !canonical.exists() || !canonical.starts_with(root) {
             return Err(anyhow!(
                 "specified file `{canonical:?}` looks like not contained in git repository of `{root:?}`",
@@ -76,6 +70,7 @@ impl PathResolver {
 /// - relative : `bar/baz.txt`
 /// - canonical : `/foo/bar/baz.txt`
 /// - home : `/foo/.git/notes`
+/// - config: `/foo/.git/notes/config.yml`
 /// - note : `/foo/.git/notes/12/34567890`
 #[derive(Debug, Clone)]
 pub struct Paths {
@@ -104,6 +99,10 @@ impl Paths {
         static NOTE_PATH: &'static str = ".git/notes";
 
         self.root.join(NOTE_PATH)
+    }
+
+    pub fn config(&self) -> PathBuf {
+        self.home().join("config")
     }
 
     pub fn note(&self, id: &String) -> anyhow::Result<PathBuf> {
@@ -135,20 +134,9 @@ fn ensure_dir(dir_path: &PathBuf) -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
-    use crate::diff::SimilarGitDiffer;
 
-    use crate::libgit::ProcessLibgit;
     use crate::path::PathResolver;
-    use crate::testlib::{AnyToString, TestRepo};
-
-    #[test]
-    fn path_resolver() -> anyhow::Result<()> {
-        let repo = TestRepo::new();
-        repo.create_file("foo.txt", Some("hello world"))?;
-        let resolver = PathResolver::from_input(repo.path(), &ProcessLibgit::new(SimilarGitDiffer))?;
-        println!("root = {:?}", resolver.root);
-        Ok(())
-    }
+    use crate::testlib::TestRepo;
 
     #[test]
     pub fn resolve() -> anyhow::Result<()> {
@@ -157,8 +145,7 @@ mod tests {
         let path = repo.create_file("foo.txt", Some("hello world"))?;
 
         // when
-        let resolver = PathResolver::from_input(repo.path(), &ProcessLibgit::new(SimilarGitDiffer))?;
-        let paths = resolver.resolve(&path.str())?;
+        let paths = PathResolver::resolve(repo.path(), "foo.txt")?;
 
         // then
         assert_eq!(paths.root(), repo.path());
@@ -177,8 +164,7 @@ mod tests {
         let path = repo.create_file("foo/bar/baz.txt", Some("hello world"))?;
 
         // when
-        let resolver = PathResolver::from_input(&repo.path().join("foo"), &ProcessLibgit::new(SimilarGitDiffer))?;
-        let paths = resolver.resolve(&"./bar/baz.txt".to_string())?;
+        let paths = PathResolver::resolve(&repo.path().join("foo"), "./bar/baz.txt")?;
         assert_eq!(paths.root(), repo.path());
         assert_eq!(paths.canonical(), path);
         assert_eq!(paths.home(), repo.path().join(".git/notes"));

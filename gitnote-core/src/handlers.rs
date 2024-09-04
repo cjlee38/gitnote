@@ -81,11 +81,10 @@ mod tests {
     impl Sut {
         fn setup(content: &str) -> anyhow::Result<Self> {
             let repo = TestRepo::new();
-            let path = repo.create_file("test.txt", Some(content))?;
+            let _ = repo.create_file("test.txt", Some(content))?;
             let libgit = ProcessLibgit::new(SimilarGitDiffer);
-            let path_resolver = PathResolver::from_input(repo.path(), &libgit)?;
+            let paths = PathResolver::resolve(repo.path(), "test.txt")?;
 
-            let paths = path_resolver.resolve(&"test.txt".to_string())?;
             let repository = NoteRepository::new(libgit);
             let note_handler = NoteHandler::new(repository);
             Ok(Sut { repo, paths, note_handler })

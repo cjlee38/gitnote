@@ -1,43 +1,42 @@
 use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
-use crate::argument::{AddArgs, DeleteArgs, EditArgs, ReadArgs};
+use crate::cli::argument::{AddArgs, DeleteArgs, EditArgs, ReadArgs};
 use crate::handlers::NoteHandler;
 use crate::libgit::{GitBlob, Libgit};
 use crate::note::{Message, Note};
-use crate::path::PathResolver;
 use crate::stdio::stdout;
 
-pub struct CliNoteHandler<T>
+pub mod argument;
+
+pub struct CliCurator<T>
 where
     T: Libgit,
 {
     note_handler: NoteHandler<T>,
-    path_resolver: PathResolver,
 }
 
-impl<T> CliNoteHandler<T>
+impl<T> CliCurator<T>
 where
     T: Libgit,
 {
-    pub fn new(note_handler: NoteHandler<T>, path_resolver: PathResolver) -> Self {
-        Self { note_handler, path_resolver }
+    pub fn new(note_handler: NoteHandler<T>) -> Self {
+        Self { note_handler }
     }
 
     pub fn add_note(&self, args: AddArgs) -> anyhow::Result<()> {
-        let paths = self.path_resolver.resolve(&args.file)?;
-        self.note_handler.add_note(&paths, args.line - 1, args.message)?;
+        let paths = &args.paths;
+        self.note_handler.add_note(paths, args.line - 1, args.message)?;
         println!(
-            "Successfully added comment for {:?} in range {}",
-            &args.file,
+            "Successfully added comment for {} in range {}",
+            args.paths.relative().display(),
             args.line
         );
         Ok(())
     }
 
     pub fn read_note(&self, args: ReadArgs) -> anyhow::Result<()> {
-        let paths = self.path_resolver.resolve(&args.file)?;
-        let ledger = self.note_handler.read_note(&paths)?;
+        let ledger = self.note_handler.read_note(&args.paths)?;
         // TODO : This is a temporary solution to provide a formatted output
         //      for the note. This should be replaced when JNI is implemented.
         let note = ledger.opaque_note();
@@ -56,13 +55,13 @@ where
             .enumerate()
             .for_each(|(line, row)| {
                 let message = note.find(line);
-                self.pretty_print_row(message, line, row)
+                self.pretty_print_row(message, line + 1, row) // starts from 1
             });
         Ok(())
     }
 
     fn pretty_print_row(&self, message: Option<&Message>, line: usize, row: &str) {
-        print!("{} ", (line + 1).to_string().yellow());
+        print!("{} ", line.to_string().yellow());
         print!("{} ", row);
 
         match message {
@@ -91,11 +90,10 @@ where
     pub fn edit_note(&self, args: EditArgs) -> anyhow::Result<()> {
         let line = args.line - 1;
 
-        let paths = self.path_resolver.resolve(&args.file)?;
-        self.note_handler.edit_note(&paths, line, args.message)?;
+        self.note_handler.edit_note(&args.paths, line, args.message)?;
         println!(
             "Successfully edited comment for {:?} in range {}",
-            &args.file,
+            &args.paths,
             line + 1
         );
         Ok(())
@@ -104,11 +102,10 @@ where
     pub fn delete_note(&self, args: DeleteArgs) -> anyhow::Result<()> {
         let line = args.line - 1;
 
-        let paths = self.path_resolver.resolve(&args.file)?;
-        self.note_handler.delete_note(&paths, line)?;
+        self.note_handler.delete_note(&args.paths, line)?;
         stdout(&format!(
             "Successfully deleted comment for {:?} in range {}",
-            &args.file,
+            &args.paths,
             line + 1
         ));
         Ok(())

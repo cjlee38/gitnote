@@ -1,7 +1,10 @@
 use std::env;
+
 use clap::Parser;
-use gitnote::argument::{CliCommand, CliSubCommand};
-use gitnote::cli::CliNoteHandler;
+
+use gitnote::cli::argument::{CliCommand, CliConfigSubcommand, CliSubcommand};
+use gitnote::cli::CliCurator;
+use gitnote::config::Config;
 use gitnote::diff::SimilarGitDiffer;
 use gitnote::handlers::NoteHandler;
 use gitnote::libgit::ProcessLibgit;
@@ -10,16 +13,29 @@ use gitnote::repository::NoteRepository;
 
 fn main() {
     let current_dir = env::current_dir().unwrap();
+
+    // let paths = PathResolver::resolve(&current_dir, ".").unwrap();
+    // let config_path = paths.config();
+    // let config = Config::resolve(config_path).unwrap();
+
     let libgit = ProcessLibgit::new(SimilarGitDiffer);
-    let path_resolver = PathResolver::from_input(&current_dir, &libgit).unwrap();
     let note_handler = NoteHandler::new(NoteRepository::new(libgit));
-    let cli_note_handler = CliNoteHandler::new(note_handler, path_resolver);
+    let cli_curator = CliCurator::new(note_handler);
     let cli_command = CliCommand::parse();
 
     match cli_command.sub {
-        CliSubCommand::Add(args) => { cli_note_handler.add_note(args)}
-        CliSubCommand::Read(args) => { cli_note_handler.read_note(args)}
-        CliSubCommand::Edit(args) => { cli_note_handler.edit_note(args)}
-        CliSubCommand::Delete(args) => { cli_note_handler.delete_note(args)}
+        CliSubcommand::Add(args) => { cli_curator.add_note(args) }
+        CliSubcommand::Read(args) => { cli_curator.read_note(args) }
+        CliSubcommand::Edit(args) => { cli_curator.edit_note(args) }
+        CliSubcommand::Delete(args) => { cli_curator.delete_note(args) }
+        CliSubcommand::Config(config_command) => {
+            let sub = match config_command {
+                CliConfigSubcommand::Set(args) => { println!("Set, {:?}", args) }
+                CliConfigSubcommand::Get(args) => { println!("Get, {:?}", args) }
+                CliConfigSubcommand::Show(args) => { println!("Show, {:?}", args) }
+                CliConfigSubcommand::Unset(args) => { println!("Unset, {:?}", args) }
+            };
+            Ok(sub)
+        }
     }.unwrap();
 }

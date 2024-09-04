@@ -38,7 +38,7 @@ impl GitDiffer for SimilarGitDiffer {
 
             match (change.old_index(), change.new_index()) {
                 (Some(old_line), Some(new_line))
-                    if tag == ChangeTag::Equal && old_line == diff_model.line
+                if tag == ChangeTag::Equal && old_line == diff_model.line
                 => {
                     // has ever not changed, so it is valid.
                     diff_model.line = new_line;
@@ -116,7 +116,7 @@ mod tests {
         SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, false);
     }
-    
+
     #[test]
     fn test_diff_append() {
         let old = r#"
@@ -143,7 +143,7 @@ mod tests {
         SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, false);
     }
-    
+
 
     #[test]
     fn test_diff_upper_insert() {
@@ -169,7 +169,7 @@ mod tests {
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 2);
     }
-    
+
     #[test]
     fn test_diff_lower_insert() {
         let old = r#"
@@ -194,7 +194,7 @@ mod tests {
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 1);
     }
-    
+
     #[test]
     fn test_diff_delete() {
         let old = r#"
@@ -216,7 +216,7 @@ mod tests {
         SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, false);
     }
-    
+
     #[test]
     fn test_diff_space() {
         let old = r#"
@@ -446,14 +446,14 @@ mod tests {
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 6);
     }
-    
+
     trait TestTrimmer {
         fn trim_both_ends(&self) -> &str;
     }
 
     impl TestTrimmer for &str {
         fn trim_both_ends(&self) -> &str {
-            return self.trim_start_matches('\n').trim_end_matches(' ')
+            return self.trim_start_matches('\n').trim_end_matches(' ');
         }
     }
 }
