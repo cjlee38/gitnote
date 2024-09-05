@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use anyhow::{anyhow, Context};
-
+use crate::config::Config;
 use crate::utils::create_file_if_not_exists;
 
 const NOTE_PATH: &'static str = ".git/notes";
@@ -42,7 +42,7 @@ impl PathResolver {
 
     fn initialize(root: &Path) -> anyhow::Result<()> {
         let note_path = root.join(NOTE_PATH);
-        create_file_if_not_exists(&note_path, "config.yml", None)?;
+        create_file_if_not_exists(&note_path, "config.yml", Some(Config::default()))?;
         create_file_if_not_exists(&note_path, "description", Some("This directory contains notes by `git-note`"))?;
         Ok(())
     }

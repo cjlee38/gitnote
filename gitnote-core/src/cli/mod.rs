@@ -28,7 +28,7 @@ where
         let paths = &args.paths;
         self.note_handler.add_note(paths, args.line - 1, args.message)?;
         println!(
-            "Successfully added comment for {} in range {}",
+            "Successfully added comment for `{}` in range `{}`",
             args.paths.relative().display(),
             args.line
         );
@@ -92,7 +92,7 @@ where
 
         self.note_handler.edit_note(&args.paths, line, args.message)?;
         println!(
-            "Successfully edited comment for {:?} in range {}",
+            "Successfully edited comment for `{}` in range `{}`",
             &args.paths,
             line + 1
         );
@@ -104,7 +104,7 @@ where
 
         self.note_handler.delete_note(&args.paths, line)?;
         stdout(&format!(
-            "Successfully deleted comment for {:?} in range {}",
+            "Successfully deleted comment for `{}` in range `{}`",
             &args.paths,
             line + 1
         ));

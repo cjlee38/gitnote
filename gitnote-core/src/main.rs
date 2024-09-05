@@ -14,9 +14,9 @@ use gitnote::repository::NoteRepository;
 fn main() {
     let current_dir = env::current_dir().unwrap();
 
-    // let paths = PathResolver::resolve(&current_dir, ".").unwrap();
-    // let config_path = paths.config();
-    // let config = Config::resolve(config_path).unwrap();
+    let paths = PathResolver::resolve(&current_dir, ".").unwrap();
+    let config_path = paths.config();
+    let config = Config::resolve(config_path).unwrap();
 
     let libgit = ProcessLibgit::new(SimilarGitDiffer);
     let note_handler = NoteHandler::new(NoteRepository::new(libgit));

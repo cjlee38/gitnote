@@ -1,15 +1,30 @@
+use std::fs;
+use std::io::Cursor;
 use std::path::Path;
 
-use encoding_rs::Encoding;
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
+use encoding_rs::Encoding;
+
 use crate::config::PersistenceType::Ephemeral;
+use crate::utils::Writeable;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default)]
     persistence_type: PersistenceType,
+    #[serde(default)]
     charset: Charset,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            persistence_type: PersistenceType::default(),
+            charset: Charset::default(),
+        }
+    }
 }
 
 impl Config {
@@ -17,12 +32,16 @@ impl Config {
     where
         P: AsRef<Path>,
     {
-        let s = std::fs::read_to_string(p)?;
+        let s = fs::read_to_string(p)?;
+        if s.is_empty() {
+            return Ok(Config::default());
+        }
         Self::resolve_from_str(s.as_str())
     }
 
     fn resolve_from_str(s: &str) -> anyhow::Result<Config> {
-        Ok(serde_yaml_ng::from_str::<Self>(s)?)
+        serde_yaml_ng::from_str::<Self>(s)
+            .context("Failed to parse config")
     }
 }
 
@@ -40,9 +59,17 @@ impl Default for PersistenceType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Charset {
     encoding: &'static Encoding,
+}
+
+impl Default for Charset {
+    fn default() -> Self {
+        Charset {
+            encoding: Encoding::for_label(b"utf-8").unwrap(),
+        }
+    }
 }
 
 impl<'de> serde::Deserialize<'de> for Charset {
@@ -51,8 +78,11 @@ impl<'de> serde::Deserialize<'de> for Charset {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
+        if s.is_empty() {
+            return Ok(Charset::default());
+        }
         let encoding = Encoding::for_label(s.as_bytes())
-            .expect(format!("`{}` is Unknown charset", s).as_str());
+            .expect(format!("`{}` is Unknown charset", s).as_str()); // TODO : may fail. need to handle error
         Ok(Charset { encoding })
     }
 }
@@ -78,6 +108,35 @@ charset: utf-8
         "#;
         let config = Config::resolve_from_str(text).unwrap();
         assert_eq!(config.persistence_type, Ephemeral);
+        assert_eq!(config.charset.encoding.name(), "UTF-8");
+    }
+
+    #[test]
+    fn empty() {
+        let text = r#""#;
+        let config = Config::resolve_from_str(text).unwrap();
+        assert_eq!(config.persistence_type, Ephemeral);
+        assert_eq!(config.charset.encoding.name(), "UTF-8");
+    }
+
+    #[test]
+    #[should_panic]
+    fn charset_unknown() {
+        let text = r#"
+persistence_type: ephemeral
+charset: unknown
+        "#;
+        let config = Config::resolve_from_str(text).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn persistence_type_unknown() {
+        let text = r#"
+persistence_type: unknown
+charset: utf-8
+        "#;
+        let config = Config::resolve_from_str(text).unwrap();
     }
 
     mod charsets {

@@ -3,6 +3,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
+use crate::config::Config;
 
 pub trait PathBufExt {
     fn try_to_str(&self) -> anyhow::Result<&str>;
@@ -17,21 +18,45 @@ impl PathBufExt for PathBuf {
 }
 
 /// shortcut to create a file if it does not exist
-pub fn create_file_if_not_exists(
+pub fn create_file_if_not_exists<T>(
     parent_dir: &PathBuf,
     filename: &str,
-    content: Option<&str>
-) -> anyhow::Result<File> {
+    content: Option<T>
+) -> anyhow::Result<File>
+where T: Writeable
+{
     // ensure directory exists
     if !parent_dir.exists() {
         std::fs::create_dir_all(parent_dir)?;
     }
 
+    // if file already exists, return it
     let file_path = parent_dir.join(filename);
     if file_path.exists() {
         return Ok(File::open(&file_path)?);
     }
-    let file = File::create(&file_path)
-        .inspect(|mut it| { content.and_then(|c| it.write_all(c.as_bytes()).ok()); })?;
+
+    // create file with given content
+    let mut file = File::create(&file_path)?;
+    if let Some(content) = content {
+        content.write(&mut file)?;
+    }
     Ok(file)
+}
+
+/// A simple trait which writes self to a file
+pub trait Writeable {
+    fn write(&self, file: &mut File) -> anyhow::Result<()>;
+}
+
+impl Writeable for &str {
+    fn write(&self, file: &mut File) -> anyhow::Result<()> {
+        Ok(file.write_all(self.as_bytes())?)
+    }
+}
+
+impl Writeable for Config {
+    fn write(&self, file: &mut File) -> anyhow::Result<()> {
+        Ok(serde_yaml_ng::to_writer(file, self)?)
+    }
 }
