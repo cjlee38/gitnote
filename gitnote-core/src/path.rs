@@ -1,11 +1,12 @@
 use std::fmt::Display;
 use std::fs;
-use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use anyhow::{anyhow, Context};
+
+use crate::utils::create_file_if_not_exists;
 
 const NOTE_PATH: &'static str = ".git/notes";
 
@@ -41,13 +42,8 @@ impl PathResolver {
 
     fn initialize(root: &Path) -> anyhow::Result<()> {
         let note_path = root.join(NOTE_PATH);
-        ensure_dir(&note_path)?;
-
-        let description = note_path.join("description");
-        if !description.exists() {
-            let mut description = File::create(&description)?;
-            description.write_all("This directory contains notes by `git-note`".as_bytes())?;
-        }
+        create_file_if_not_exists(&note_path, "config.yml", None)?;
+        create_file_if_not_exists(&note_path, "description", Some("This directory contains notes by `git-note`"))?;
         Ok(())
     }
 
@@ -102,7 +98,7 @@ impl Paths {
     }
 
     pub fn config(&self) -> PathBuf {
-        self.home().join("config")
+        self.home().join("config.yml")
     }
 
     pub fn note(&self, id: &String) -> anyhow::Result<PathBuf> {
