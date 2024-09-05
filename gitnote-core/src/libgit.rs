@@ -1,10 +1,11 @@
+use std::fs;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{anyhow, Context};
-
+use crate::config::CONFIG;
 use crate::diff::{DiffModel, GitDiffer};
 use crate::path::Paths;
 use crate::utils::PathBufExt;
@@ -50,11 +51,15 @@ where
     }
 
     fn read_file_content(&self, paths: &Paths) -> anyhow::Result<String> {
-        let file = File::open(paths.canonical())?;
-        let mut reader = BufReader::new(file);
-        let mut content = String::new();
-        reader.read_to_string(&mut content)?;
-        return Ok(content);
+        let bytes = fs::read(paths.canonical())?;
+        self.decode(&bytes)
+            .map_err(|e| anyhow!("Failed to decode file content from `{}` : {}", paths.canonical().display(), e))
+    }
+
+    fn decode(&self, bytes: &[u8]) -> anyhow::Result<String> {
+        let charset = CONFIG.charset();
+        charset.decode(bytes)
+            .map_err(|e| anyhow!("Failed to decode file with given charset `{}` : {}", charset, e))
     }
 }
 
@@ -86,16 +91,17 @@ where
             .output()
             .context(format!("!Failed to run `git {:?}`", args))?;
         if !output.status.success() {
-            let stderr = std::str::from_utf8(output.stderr.as_slice())
-                .map_err(|e| anyhow!("UTF-8 decoding error: {}", e))?;
+            let stderr = self.decode(&output.stderr)?;
             return Err(anyhow!("Failed to run `git {args:?}`, error : {stderr}"));
         }
-        let result = std::str::from_utf8(output.stdout.as_slice())
-            .map_err(|e| anyhow!("UTF-8 decoding error: {}", e))?;
-        Ok(result.trim().to_string())
+        let stdout = self.decode(&output.stdout)?;
+        Ok(stdout.trim().to_string())
     }
 
     fn diff(&self, old: &String, new: &String, diff_model: &mut DiffModel) {
         self.differ.diff(old, new, diff_model);
     }
 }
+
+// TODO : implement ManualLibgit
+// pub struct ManualLibgit;

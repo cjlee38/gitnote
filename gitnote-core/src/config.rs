@@ -1,4 +1,5 @@
 use std::{env, fs};
+use std::fmt::{Display, Formatter};
 use std::path::Path;
 use std::sync::Once;
 use anyhow::Context;
@@ -10,7 +11,7 @@ use crate::config::PersistenceType::Ephemeral;
 use crate::path::PathResolver;
 
 // declare config as static variable
-static CONFIG: Lazy<Config> = Lazy::new(|| {
+pub static CONFIG: Lazy<Config> = Lazy::new(|| {
     let current_dir = env::current_dir().unwrap();
     let paths = PathResolver::resolve(&current_dir, ".").unwrap();
     let config_path = paths.config();
@@ -50,11 +51,15 @@ impl Config {
         serde_yaml_ng::from_str::<Self>(s)
             .context("Failed to parse config")
     }
+
+    pub fn charset(&self) -> &Charset {
+        &self.charset
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum PersistenceType {
+pub enum PersistenceType {
     Ephemeral,
     Closet,
     Latest,
@@ -67,8 +72,24 @@ impl Default for PersistenceType {
 }
 
 #[derive(Debug, PartialEq)]
-struct Charset {
+pub struct Charset {
     encoding: &'static Encoding,
+}
+
+impl Charset {
+    pub fn decode(&self, bytes: &[u8]) -> anyhow::Result<String> {
+        let (decoded, _, error) = self.encoding.decode(bytes);
+        match error {
+            false => Ok(decoded.to_string()),
+            true => Err(anyhow::anyhow!("Failed to decode with charset {}", self.encoding.name())),
+        }
+    }
+}
+
+impl Display for Charset {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.encoding.name())
+    }
 }
 
 impl Default for Charset {

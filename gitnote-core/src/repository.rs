@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::BufReader;
-
+use crate::config::CONFIG;
 use crate::diff::GitDiffer;
 use crate::libgit::Libgit;
 use crate::note::{Note, NoteLedger};

@@ -82,8 +82,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::cli::argument::AddArgs;
     use crate::diff::SimilarGitDiffer;
-    use crate::handlers::NoteHandler;
+    use crate::handlers::{NoteArgs, NoteHandler};
     use crate::libgit::{Libgit, ProcessLibgit};
     use crate::note::Note;
     use crate::path::{PathResolver, Paths};
@@ -109,13 +110,42 @@ mod tests {
         }
     }
 
+    struct TestNoteArgs {
+        paths: Paths,
+        line: usize,
+        message: String,
+    }
+
+    impl NoteArgs for TestNoteArgs {
+        fn paths(&self) -> &Paths {
+            &self.paths
+        }
+
+        fn user_line(&self) -> usize {
+            self.line
+        }
+
+        fn sys_line(&self) -> usize {
+            self.line - 1
+        }
+
+        fn message(&self) -> String {
+            self.message.clone()
+        }
+    }
+
     #[test]
     fn test_add_note() -> anyhow::Result<()> {
         // given
         let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        sut.note_handler.add_note(&sut.paths, "hello".to_string())?;
+        let args = TestNoteArgs {
+            paths: sut.paths.clone(),
+            line: 2,
+            message: "hello".to_string(),
+        };
+        sut.note_handler.add_note(&args)?;
 
         // then
         let note_path = sut.paths.note(&Note::get_id(&sut.paths.relative())?)?;
@@ -137,7 +167,12 @@ mod tests {
         let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        sut.note_handler.add_note(&sut.paths, "hello".to_string())?;
+        let args = TestNoteArgs {
+            paths: sut.paths.clone(),
+            line: 2,
+            message: "hello".to_string(),
+        };
+        sut.note_handler.add_note(&args)?;
         let ledger = sut.note_handler.read_note(&sut.paths)?;
 
         // then
@@ -157,7 +192,12 @@ mod tests {
         let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        sut.note_handler.add_note(&sut.paths, "hello".to_string())?;
+        let args = TestNoteArgs {
+            paths: sut.paths.clone(),
+            line: 2,
+            message: "hello".to_string(),
+        };
+        sut.note_handler.add_note(&args)?;
         sut.note_handler.edit_note(&sut.paths, 1, "world".to_string())?;
 
         // then
@@ -181,7 +221,12 @@ mod tests {
         let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        sut.note_handler.add_note(&sut.paths, "hello".to_string())?;
+        let args = TestNoteArgs {
+            paths: sut.paths.clone(),
+            line: 2,
+            message: "hello".to_string(),
+        };
+        sut.note_handler.add_note(&args)?;
         sut.note_handler.delete_note(&sut.paths, 1)?;
 
         // then
