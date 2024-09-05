@@ -345,6 +345,7 @@ dependencies = [
  "encoding_rs",
  "itertools",
  "log",
+ "once_cell",
  "serde",
  "serde_json",
  "serde_yaml_ng",

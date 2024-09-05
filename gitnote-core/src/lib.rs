@@ -1,5 +1,3 @@
-use clap::Parser;
-
 pub mod handlers;
 pub mod libgit;
 pub mod repository;

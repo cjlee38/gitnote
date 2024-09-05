@@ -2,9 +2,9 @@ use std::fmt::Display;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 use anyhow::{anyhow, Context};
+
 use crate::config::Config;
 use crate::utils::create_file_if_not_exists;
 

@@ -1,8 +1,10 @@
 use std::env;
+use std::path::Path;
 use std::str::FromStr;
 
 use clap::{Args, Parser, Subcommand};
-
+use crate::config::Config;
+use crate::handlers::NoteArgs;
 use crate::path::{PathResolver, Paths};
 
 #[derive(Debug, Parser)]
@@ -40,19 +42,37 @@ pub struct AddArgs {
         help = "Specifies the file to add a note to",
         value_parser = clap::value_parser!(Paths)
     )]
-    pub paths: Paths,
+    paths: Paths,
     #[arg(
         short,
         long,
         help = "Specifies the line number to add a note to"
     )]
-    pub line: usize,
+    line: usize,
     #[arg(
         short,
         long,
         help = "The note message"
     )]
-    pub message: String,
+    message: String,
+}
+
+impl NoteArgs for AddArgs {
+    fn paths(&self) -> &Paths {
+        &self.paths
+    }
+
+    fn user_line(&self) -> usize {
+        self.line
+    }
+
+    fn sys_line(&self) -> usize {
+        self.line - 1
+    }
+
+    fn message(&self) -> String {
+        self.message.clone()
+    }
 }
 
 #[derive(Debug, Args)]

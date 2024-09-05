@@ -2,7 +2,8 @@ use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
 use crate::cli::argument::{AddArgs, DeleteArgs, EditArgs, ReadArgs};
-use crate::handlers::NoteHandler;
+use crate::config::Config;
+use crate::handlers::{NoteArgs, NoteHandler};
 use crate::libgit::{GitBlob, Libgit};
 use crate::note::{Message, Note};
 use crate::stdio::stdout;
@@ -25,12 +26,11 @@ where
     }
 
     pub fn add_note(&self, args: AddArgs) -> anyhow::Result<()> {
-        let paths = &args.paths;
-        self.note_handler.add_note(paths, args.line - 1, args.message)?;
+        self.note_handler.add_note(&args)?;
         println!(
             "Successfully added comment for `{}` in range `{}`",
-            args.paths.relative().display(),
-            args.line
+            args.paths().relative().display(),
+            args.user_line()
         );
         Ok(())
     }

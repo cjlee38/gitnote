@@ -59,8 +59,8 @@ where
                 let new_blob = self.git_blob().ok()?;
 
                 let mut diff_model = DiffModel::of(m);
-                self.libgit
-                    .diff(&old_content, &new_blob.content, &mut diff_model);
+                self.libgit.diff(&old_content, &new_blob.content, &mut diff_model);
+
                 if diff_model.valid {
                     Some(m.copied(diff_model.line, new_blob.id.clone()))
                 } else {

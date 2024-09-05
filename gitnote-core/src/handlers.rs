@@ -7,6 +7,20 @@ use crate::note::NoteLedger;
 use crate::path::Paths;
 use crate::repository::NoteRepository;
 
+pub trait NoteArgs {
+    /// Collection of paths to resolve file paths inside.
+    /// Used for every operations(add, read, edit, delete)
+    fn paths(&self) -> &Paths;
+    /// line number user inputs which starts from 1 which differs from system line number
+    /// Used only note add, edit and delete
+    fn user_line(&self) -> usize;
+    /// line number system uses which starts from 0 which differs from user line number
+    /// Used only note add, edit and delete
+    fn sys_line(&self) -> usize;
+    /// message user inputs
+    fn message(&self) -> String;
+}
+
 pub struct NoteHandler<T>
 where
     T: Libgit,
@@ -22,16 +36,20 @@ where
         NoteHandler { note_repository }
     }
 
-    pub fn add_note(&self, paths: &Paths, line: usize, message: String) -> anyhow::Result<()> {
-        let ledger = self.note_repository.read_note(paths)?;
-        if ledger.opaque_exists(line) {
-            return Err(anyhow!("comment already exists for line {} in {}. consider to use `edit` instead.", line + 1, paths));
+    pub fn add_note<A>(&self, args: &A) -> anyhow::Result<()>
+    where
+        A: NoteArgs,
+    {
+        let ledger = self.note_repository.read_note(args.paths())?;
+        if ledger.opaque_exists(args.sys_line()) {
+            return Err(anyhow!("comment already exists for line {} in {}. consider to use `edit` instead.", args.user_line(), args.paths()));
         }
-        ledger.append(line, message)?;
-        self.note_repository.write_note(paths, &ledger.plain_note())?;
+        ledger.append(args.sys_line(), args.message())?;
+        self.note_repository.write_note(args.paths(), &ledger.plain_note())?;
         return Ok(());
     }
 
+    // TODO : replace parameters into `NoteArgs`
     pub fn read_note(&self, paths: &Paths) -> anyhow::Result<NoteLedger<T>> {
         let ledger = self.note_repository.read_note(paths)?;
         return Ok(ledger);
@@ -97,7 +115,7 @@ mod tests {
         let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        sut.note_handler.add_note(&sut.paths, 1, "hello".to_string())?;
+        sut.note_handler.add_note(&sut.paths, "hello".to_string())?;
 
         // then
         let note_path = sut.paths.note(&Note::get_id(&sut.paths.relative())?)?;
@@ -119,7 +137,7 @@ mod tests {
         let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        sut.note_handler.add_note(&sut.paths, 1, "hello".to_string())?;
+        sut.note_handler.add_note(&sut.paths, "hello".to_string())?;
         let ledger = sut.note_handler.read_note(&sut.paths)?;
 
         // then
@@ -139,7 +157,7 @@ mod tests {
         let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        sut.note_handler.add_note(&sut.paths, 1, "hello".to_string())?;
+        sut.note_handler.add_note(&sut.paths, "hello".to_string())?;
         sut.note_handler.edit_note(&sut.paths, 1, "world".to_string())?;
 
         // then
@@ -163,7 +181,7 @@ mod tests {
         let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        sut.note_handler.add_note(&sut.paths, 1, "hello".to_string())?;
+        sut.note_handler.add_note(&sut.paths, "hello".to_string())?;
         sut.note_handler.delete_note(&sut.paths, 1)?;
 
         // then

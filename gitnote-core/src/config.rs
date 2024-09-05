@@ -1,14 +1,21 @@
-use std::fs;
-use std::io::Cursor;
+use std::{env, fs};
 use std::path::Path;
-
+use std::sync::Once;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
 use encoding_rs::Encoding;
-
+use once_cell::sync::Lazy;
 use crate::config::PersistenceType::Ephemeral;
-use crate::utils::Writeable;
+use crate::path::PathResolver;
+
+// declare config as static variable
+static CONFIG: Lazy<Config> = Lazy::new(|| {
+    let current_dir = env::current_dir().unwrap();
+    let paths = PathResolver::resolve(&current_dir, ".").unwrap();
+    let config_path = paths.config();
+    Config::resolve(config_path).unwrap()
+});
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
