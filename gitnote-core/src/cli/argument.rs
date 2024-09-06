@@ -3,6 +3,7 @@ use std::path::Path;
 use std::str::FromStr;
 
 use clap::{Args, Parser, Subcommand};
+
 use crate::config::Config;
 use crate::handlers::NoteArgs;
 use crate::path::{PathResolver, Paths};
@@ -93,6 +94,24 @@ pub struct ReadArgs {
     pub formatted: bool,
 }
 
+impl NoteArgs for ReadArgs {
+    fn paths(&self) -> &Paths {
+        &self.paths
+    }
+
+    fn user_line(&self) -> usize {
+        unreachable!("user_line is not used in read operation")
+    }
+
+    fn sys_line(&self) -> usize {
+        unreachable!("sys_line is not used in read operation")
+    }
+
+    fn message(&self) -> String {
+        unreachable!("message is not used in read operation")
+    }
+}
+
 #[derive(Debug, Args)]
 pub struct EditArgs {
     #[arg(
@@ -117,6 +136,24 @@ pub struct EditArgs {
     pub message: String,
 }
 
+impl NoteArgs for EditArgs {
+    fn paths(&self) -> &Paths {
+        &self.paths
+    }
+
+    fn user_line(&self) -> usize {
+        self.line
+    }
+
+    fn sys_line(&self) -> usize {
+        self.line - 1
+    }
+
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+}
+
 #[derive(Debug, Args)]
 pub struct DeleteArgs {
     #[arg(
@@ -133,6 +170,24 @@ pub struct DeleteArgs {
         help = "Specifies the line number to delete"
     )]
     pub line: usize,
+}
+
+impl NoteArgs for DeleteArgs {
+    fn paths(&self) -> &Paths {
+        &self.paths
+    }
+
+    fn user_line(&self) -> usize {
+        self.line
+    }
+
+    fn sys_line(&self) -> usize {
+        self.line - 1
+    }
+
+    fn message(&self) -> String {
+        unreachable!("message is not used in delete operation")
+    }
 }
 
 #[derive(Debug, Subcommand)]

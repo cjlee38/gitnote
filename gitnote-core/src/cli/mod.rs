@@ -2,7 +2,6 @@ use colored::Colorize;
 use unicode_width::UnicodeWidthStr;
 
 use crate::cli::argument::{AddArgs, DeleteArgs, EditArgs, ReadArgs};
-use crate::config::Config;
 use crate::handlers::{NoteArgs, NoteHandler};
 use crate::libgit::{GitBlob, Libgit};
 use crate::note::{Message, Note};
@@ -36,7 +35,7 @@ where
     }
 
     pub fn read_note(&self, args: ReadArgs) -> anyhow::Result<()> {
-        let ledger = self.note_handler.read_note(&args.paths)?;
+        let ledger = self.note_handler.read_note(&args)?;
         // TODO : This is a temporary solution to provide a formatted output
         //      for the note. This should be replaced when JNI is implemented.
         let note = ledger.opaque_note();
@@ -90,7 +89,7 @@ where
     pub fn edit_note(&self, args: EditArgs) -> anyhow::Result<()> {
         let line = args.line - 1;
 
-        self.note_handler.edit_note(&args.paths, line, args.message)?;
+        self.note_handler.edit_note(&args)?;
         println!(
             "Successfully edited comment for `{}` in range `{}`",
             &args.paths,
@@ -100,13 +99,11 @@ where
     }
 
     pub fn delete_note(&self, args: DeleteArgs) -> anyhow::Result<()> {
-        let line = args.line - 1;
-
-        self.note_handler.delete_note(&args.paths, line)?;
+        self.note_handler.delete_note(&args)?;
         stdout(&format!(
             "Successfully deleted comment for `{}` in range `{}`",
             &args.paths,
-            line + 1
+            args.user_line()
         ));
         Ok(())
     }

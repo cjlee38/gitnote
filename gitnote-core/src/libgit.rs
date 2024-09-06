@@ -1,10 +1,10 @@
 use std::fs;
-use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{anyhow, Context};
+
 use crate::config::CONFIG;
 use crate::diff::{DiffModel, GitDiffer};
 use crate::path::Paths;

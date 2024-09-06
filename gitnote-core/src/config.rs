@@ -1,12 +1,12 @@
 use std::{env, fs};
 use std::fmt::{Display, Formatter};
 use std::path::Path;
-use std::sync::Once;
-use anyhow::Context;
-use serde::{Deserialize, Serialize};
 
+use anyhow::Context;
 use encoding_rs::Encoding;
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+
 use crate::config::PersistenceType::Ephemeral;
 use crate::path::PathResolver;
 

@@ -7,20 +7,29 @@ use crate::note::NoteLedger;
 use crate::path::Paths;
 use crate::repository::NoteRepository;
 
+/// Arguments for note operations.
+/// Even though this trait can be separated into multiple traits, it is combined into one for simplicity.
+/// The constraints should be controlled by [`NoteHandler`] implementation.
 pub trait NoteArgs {
     /// Collection of paths to resolve file paths inside.
-    /// Used for every operations(add, read, edit, delete)
+    ///
+    /// Can be used for : add, read, edit, delete
     fn paths(&self) -> &Paths;
     /// line number user inputs which starts from 1 which differs from system line number
-    /// Used only note add, edit and delete
+    ///
+    /// Can be used for : add, edit, delete
     fn user_line(&self) -> usize;
     /// line number system uses which starts from 0 which differs from user line number
-    /// Used only note add, edit and delete
+    ///
+    /// Can be used for : add, edit, delete
     fn sys_line(&self) -> usize;
     /// message user inputs
+    ///
+    /// /// Can be used for : add, edit
     fn message(&self) -> String;
 }
 
+/// A service to handle note operations.
 pub struct NoteHandler<T>
 where
     T: Libgit,
@@ -49,40 +58,50 @@ where
         return Ok(());
     }
 
-    // TODO : replace parameters into `NoteArgs`
-    pub fn read_note(&self, paths: &Paths) -> anyhow::Result<NoteLedger<T>> {
-        let ledger = self.note_repository.read_note(paths)?;
+    pub fn read_note<A>(&self, args: &A) -> anyhow::Result<NoteLedger<T>>
+    where
+        A: NoteArgs,
+    {
+        let ledger = self.note_repository.read_note(args.paths())?;
         return Ok(ledger);
     }
 
-    pub fn edit_note(&self, paths: &Paths, line: usize, message: String) -> anyhow::Result<()> {
+    pub fn edit_note<A>(&self, args: &A) -> anyhow::Result<()>
+    where
+        A: NoteArgs,
+    {
+        let paths = args.paths();
         let ledger = self.note_repository.read_note(paths)?;
-        return if let Some(uuid) = ledger.opaque_uuid(line) {
+
+        return if let Some(uuid) = ledger.opaque_uuid(args.sys_line()) {
             println!("editing message found uuid {}", uuid);
-            ledger.edit(uuid, message);
+            ledger.edit(uuid, args.message());
             self.note_repository.write_note(paths, &ledger.plain_note())?;
             Ok(())
         } else {
-            Err(anyhow!("no comment found for line {} in {}. consider to use `add` instead.", line + 1, paths))
+            Err(anyhow!("no comment found for line {} in {}. consider to use `add` instead.", args.user_line(), paths))
         };
     }
 
-    pub fn delete_note(&self, paths: &Paths, line: usize) -> anyhow::Result<()> {
+    pub fn delete_note<A>(&self, args: &A) -> anyhow::Result<()>
+    where
+        A: NoteArgs,
+    {
+        let paths = args.paths();
         let ledger = self.note_repository.read_note(paths)?;
 
-        return if let Some(uuid) = ledger.opaque_uuid(line) {
+        return if let Some(uuid) = ledger.opaque_uuid(args.sys_line()) {
             ledger.delete(uuid);
             self.note_repository.write_note(paths, &ledger.plain_note())?;
             Ok(())
         } else {
-            Err(anyhow!(format!("no comment found for line {} in {:?}",line + 1,paths)))
+            Err(anyhow!(format!("no comment found for line {} in {:?}", args.user_line(), paths)))
         };
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::cli::argument::AddArgs;
     use crate::diff::SimilarGitDiffer;
     use crate::handlers::{NoteArgs, NoteHandler};
     use crate::libgit::{Libgit, ProcessLibgit};
@@ -167,13 +186,18 @@ mod tests {
         let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        let args = TestNoteArgs {
+        let add_args = TestNoteArgs {
             paths: sut.paths.clone(),
             line: 2,
             message: "hello".to_string(),
         };
-        sut.note_handler.add_note(&args)?;
-        let ledger = sut.note_handler.read_note(&sut.paths)?;
+        sut.note_handler.add_note(&add_args)?;
+        let read_args = TestNoteArgs {
+            paths: sut.paths.clone(),
+            line: 0,
+            message: "".to_string(),
+        };
+        let ledger = sut.note_handler.read_note(&read_args)?;
 
         // then
         let note = ledger.plain_note();
@@ -192,13 +216,18 @@ mod tests {
         let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        let args = TestNoteArgs {
+        let add_args = TestNoteArgs {
             paths: sut.paths.clone(),
             line: 2,
             message: "hello".to_string(),
         };
-        sut.note_handler.add_note(&args)?;
-        sut.note_handler.edit_note(&sut.paths, 1, "world".to_string())?;
+        sut.note_handler.add_note(&add_args)?;
+        let edit_args = TestNoteArgs {
+            paths: sut.paths.clone(),
+            line: 2,
+            message: "world".to_string(),
+        };
+        sut.note_handler.edit_note(&edit_args)?;
 
         // then
         let note_path = sut.paths.note(&Note::get_id(&sut.paths.relative())?)?;
@@ -221,13 +250,18 @@ mod tests {
         let sut = Sut::setup("foo\nbar\nbaz")?;
 
         // when
-        let args = TestNoteArgs {
+        let add_args = TestNoteArgs {
             paths: sut.paths.clone(),
             line: 2,
             message: "hello".to_string(),
         };
-        sut.note_handler.add_note(&args)?;
-        sut.note_handler.delete_note(&sut.paths, 1)?;
+        sut.note_handler.add_note(&add_args)?;
+        let delete_args = TestNoteArgs {
+            paths: sut.paths.clone(),
+            line: 2,
+            message: "".to_string(),
+        };
+        sut.note_handler.delete_note(&delete_args)?;
 
         // then
         let note_path = sut.paths.note(&Note::get_id(&sut.paths.relative())?)?;

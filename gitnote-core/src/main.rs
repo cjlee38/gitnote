@@ -1,14 +1,10 @@
-use std::env;
-
 use clap::Parser;
 
 use gitnote::cli::argument::{CliCommand, CliConfigSubcommand, CliSubcommand};
 use gitnote::cli::CliCurator;
-use gitnote::config::Config;
 use gitnote::diff::SimilarGitDiffer;
 use gitnote::handlers::NoteHandler;
 use gitnote::libgit::ProcessLibgit;
-use gitnote::path::PathResolver;
 use gitnote::repository::NoteRepository;
 
 fn main() {

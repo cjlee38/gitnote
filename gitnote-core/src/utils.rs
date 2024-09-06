@@ -3,6 +3,7 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use anyhow::Context;
+
 use crate::config::Config;
 
 pub trait PathBufExt {
@@ -21,9 +22,10 @@ impl PathBufExt for PathBuf {
 pub fn create_file_if_not_exists<T>(
     parent_dir: &PathBuf,
     filename: &str,
-    content: Option<T>
+    content: Option<T>,
 ) -> anyhow::Result<File>
-where T: Writeable
+where
+    T: Writeable,
 {
     // ensure directory exists
     if !parent_dir.exists() {
