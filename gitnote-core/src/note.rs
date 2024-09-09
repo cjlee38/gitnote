@@ -52,14 +52,13 @@ where
     /// Read note from file and filter out invalid messages
     fn opaque_messages(&self) -> Vec<Message> {
         let plain = self.plain_messages();
-        return plain
-            .iter()
+        return plain.iter()
             .filter_map(|m| {
-                let old_content = self.libgit.read_content(&self.paths, &m.oid).ok()?;
-                let new_blob = self.git_blob().ok()?;
+                let old_blob = self.libgit.read_git_blob(&self.paths, &m.oid).ok()?;
+                let new_blob = self.make_git_blob(false).ok()?;
 
                 let mut diff_model = DiffModel::of(m);
-                self.libgit.diff(&old_content, &new_blob.content, &mut diff_model);
+                self.libgit.diff(&old_blob.content, &new_blob.content, &mut diff_model);
 
                 if diff_model.valid {
                     Some(m.copied(diff_model.line, new_blob.id.clone()))
@@ -70,8 +69,8 @@ where
             .collect();
     }
 
-    pub fn git_blob(&self) -> anyhow::Result<GitBlob> {
-        return self.libgit.find_volatile_git_blob(&self.paths);
+    pub fn make_git_blob(&self, persist: bool) -> anyhow::Result<GitBlob> {
+        self.libgit.make_git_blob(&self.paths, persist)
     }
 
     pub fn opaque_exists(&self, line: usize) -> bool {
@@ -80,16 +79,15 @@ where
 
     pub fn opaque_uuid(&self, line: usize) -> Option<String> {
         let messages = self.opaque_messages();
-        return messages
-            .iter()
+        return messages.iter()
             .rev()
             .find(|m| m.line == line)
             .map(|m| m.uuid.clone());
     }
 
     pub fn append(&self, line: usize, message: String) -> anyhow::Result<()> {
-        let blob = self.git_blob()?;
-        let message = Message::new(&blob, line, message)?;
+        let git_blob = self.libgit.make_git_blob(&self.paths, true)?;
+        let message = Message::new(&git_blob, line, message)?;
         self.note.borrow_mut().append(message)?;
         return Ok(());
     }
@@ -100,8 +98,7 @@ where
     }
 
     pub fn edit(&self, uuid: String, message: String) {
-        self.note
-            .borrow_mut()
+        self.note.borrow_mut()
             .messages
             .iter_mut()
             .filter(|m| m.uuid == uuid)
@@ -162,16 +159,18 @@ pub struct Message {
 }
 
 impl Message {
-    pub fn new(blob: &GitBlob, line: usize, message: String) -> anyhow::Result<Self> {
-        let snippet = blob.snippet(line).ok_or(anyhow!(
-            "specified line({}) extends limit for file {:?}",
+    pub fn new(git_blob: &GitBlob, line: usize, message: String) -> anyhow::Result<Self> {
+        // let snippet = content.lines().nth(line - 1)
+        //     .ok_or(anyhow!("specified line `{}` extends limit for content",line))?;
+        let snippet = git_blob.snippet(line).ok_or(anyhow!(
+            "specified line `{}` extends limit for file {:?}",
             line,
-            &blob.file_path
+            &git_blob.file_path
         ))?;
 
         Ok(Message {
             uuid: Uuid::new_v4().to_string(),
-            oid: blob.id.to_string(),
+            oid: git_blob.id.to_string(),
             line,
             snippet,
             message,

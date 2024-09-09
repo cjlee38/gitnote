@@ -14,10 +14,12 @@ const NOTE_PATH: &'static str = ".git/notes";
 pub struct PathResolver;
 
 impl PathResolver {
-    pub fn resolve(
-        current_path: &Path,
+    pub fn resolve<P>(
+        current_path: P,
         input: &str,
-    ) -> anyhow::Result<Paths> {
+    ) -> anyhow::Result<Paths>
+    where P: AsRef<Path> {
+        let current_path = current_path.as_ref();
         let root = Self::root_by_recursive(current_path)?;
         Self::initialize(&root)?;
 
@@ -29,8 +31,8 @@ impl PathResolver {
         Ok(Paths::new(root.clone(), relative))
     }
 
-    fn root_by_recursive(current: &Path) -> anyhow::Result<PathBuf> {
-        let mut current = current;
+    fn root_by_recursive<P>(current: P) -> anyhow::Result<PathBuf> where P: AsRef<Path> {
+        let mut current = current.as_ref();
         while !current.join(".git").exists() {
             if current.parent().is_none() {
                 return Err(anyhow!("Cannot find git repository from {:?}", current));
@@ -65,6 +67,7 @@ impl PathResolver {
 /// - root : `/foo`
 /// - relative : `bar/baz.txt`
 /// - canonical : `/foo/bar/baz.txt`
+/// - objects : `/foo/.git/objects`
 /// - home : `/foo/.git/notes`
 /// - config: `/foo/.git/notes/config.yml`
 /// - note : `/foo/.git/notes/12/34567890`
@@ -79,22 +82,24 @@ impl Paths {
         Paths { root, relative }
     }
 
-    pub fn root(&self) -> &PathBuf {
-        &self.root
+    pub fn root(&self) -> PathBuf {
+        self.root.clone()
     }
 
-    pub fn relative(&self) -> &PathBuf {
-        &self.relative
+    pub fn relative(&self) -> PathBuf {
+        self.relative.clone()
     }
 
     pub fn canonical(&self) -> PathBuf {
         self.root.join(&self.relative)
     }
 
-    pub fn home(&self) -> PathBuf {
-        static NOTE_PATH: &'static str = ".git/notes";
+    pub fn objects(&self) -> PathBuf {
+        self.root.join(".git/objects")
+    }
 
-        self.root.join(NOTE_PATH)
+    pub fn home(&self) -> PathBuf {
+        self.root.join(".git/notes")
     }
 
     pub fn config(&self) -> PathBuf {
@@ -141,13 +146,13 @@ mod tests {
         let path = repo.create_file("foo.txt", Some("hello world"))?;
 
         // when
-        let paths = PathResolver::resolve(repo.path(), "foo.txt")?;
+        let paths = PathResolver::resolve(&repo.path(), "foo.txt")?;
 
         // then
         assert_eq!(paths.root(), repo.path());
         assert_eq!(paths.canonical(), path);
         assert_eq!(paths.home(), repo.path().join(".git/notes"));
-        assert_eq!(paths.relative(), &PathBuf::from("foo.txt"));
+        assert_eq!(paths.relative(), PathBuf::from("foo.txt"));
         Ok(())
     }
 
@@ -164,7 +169,7 @@ mod tests {
         assert_eq!(paths.root(), repo.path());
         assert_eq!(paths.canonical(), path);
         assert_eq!(paths.home(), repo.path().join(".git/notes"));
-        assert_eq!(paths.relative(), &PathBuf::from("foo/bar/baz.txt"));
+        assert_eq!(paths.relative(), PathBuf::from("foo/bar/baz.txt"));
         Ok(())
     }
 }

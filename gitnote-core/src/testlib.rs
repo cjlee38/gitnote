@@ -71,8 +71,8 @@ impl TestRepo {
         return Ok(serde_json::from_reader(BufReader::new(File::open(path)?))?);
     }
 
-    pub fn path(&self) -> &PathBuf {
-        &self.path
+    pub fn path(&self) -> PathBuf {
+        self.path.clone()
     }
 }
 

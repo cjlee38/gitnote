@@ -2,13 +2,13 @@ use clap::Parser;
 
 use gitnote::cli::argument::{CliCommand, CliConfigSubcommand, CliSubcommand};
 use gitnote::cli::CliCurator;
-use gitnote::diff::SimilarGitDiffer;
+use gitnote::diff::SimilarDiffer;
 use gitnote::handlers::NoteHandler;
-use gitnote::libgit::ProcessLibgit;
+use gitnote::libgit::{ManualLibgit, ProcessLibgit};
 use gitnote::repository::NoteRepository;
 
 fn main() {
-    let libgit = ProcessLibgit::new(SimilarGitDiffer);
+    let libgit = ManualLibgit::new(SimilarDiffer);
     let note_handler = NoteHandler::new(NoteRepository::new(libgit));
     let cli_curator = CliCurator::new(note_handler);
     let cli_command = CliCommand::parse();

@@ -74,7 +74,6 @@ where
         let ledger = self.note_repository.read_note(paths)?;
 
         return if let Some(uuid) = ledger.opaque_uuid(args.sys_line()) {
-            println!("editing message found uuid {}", uuid);
             ledger.edit(uuid, args.message());
             self.note_repository.write_note(paths, &ledger.plain_note())?;
             Ok(())
@@ -95,16 +94,16 @@ where
             self.note_repository.write_note(paths, &ledger.plain_note())?;
             Ok(())
         } else {
-            Err(anyhow!(format!("no comment found for line {} in {:?}", args.user_line(), paths)))
+            Err(anyhow!("no comment found for line {} in {}", args.user_line(), paths))
         };
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::diff::SimilarGitDiffer;
+    use crate::diff::{Differ, SimilarDiffer};
     use crate::handlers::{NoteArgs, NoteHandler};
-    use crate::libgit::{Libgit, ProcessLibgit};
+    use crate::libgit::{Libgit, ManualLibgit};
     use crate::note::Note;
     use crate::path::{PathResolver, Paths};
     use crate::repository::NoteRepository;
@@ -113,14 +112,14 @@ mod tests {
     struct Sut {
         repo: TestRepo,
         paths: Paths,
-        note_handler: NoteHandler<ProcessLibgit<SimilarGitDiffer>>,
+        note_handler: NoteHandler<ManualLibgit<SimilarDiffer>>,
     }
 
     impl Sut {
         fn setup(content: &str) -> anyhow::Result<Self> {
             let repo = TestRepo::new();
             let _ = repo.create_file("test.txt", Some(content))?;
-            let libgit = ProcessLibgit::new(SimilarGitDiffer);
+            let libgit = ManualLibgit::new(SimilarDiffer);
             let paths = PathResolver::resolve(repo.path(), "test.txt")?;
 
             let repository = NoteRepository::new(libgit);
@@ -171,7 +170,7 @@ mod tests {
         assert!(note_path.exists());
 
         let note: Note = sut.repo.read_note(&note_path)?;
-        assert_eq!(&note.reference, sut.paths.relative());
+        assert_eq!(note.reference, sut.paths.relative());
         assert_eq!(note.messages.len(), 1);
         let message = &note.messages[0];
         assert_eq!(message.message, "hello");
@@ -201,7 +200,7 @@ mod tests {
 
         // then
         let note = ledger.plain_note();
-        assert_eq!(&note.reference, sut.paths.relative());
+        assert_eq!(note.reference, sut.paths.relative());
         assert_eq!(note.messages.len(), 1);
         let message = &note.messages[0];
         assert_eq!(message.message, "hello");
@@ -234,7 +233,7 @@ mod tests {
         assert!(note_path.exists());
 
         let note: Note = sut.repo.read_note(&note_path)?;
-        assert_eq!(&note.reference, sut.paths.relative());
+        assert_eq!(note.reference, sut.paths.relative());
         assert_eq!(note.messages.len(), 1);
         let message = &note.messages[0];
         assert_eq!(message.message, "world");
@@ -268,7 +267,7 @@ mod tests {
         assert!(note_path.exists());
 
         let note: Note = sut.repo.read_note(&note_path)?;
-        assert_eq!(&note.reference, sut.paths.relative());
+        assert_eq!(note.reference, sut.paths.relative());
         assert_eq!(note.messages.len(), 0);
 
         Ok(())

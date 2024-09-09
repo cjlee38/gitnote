@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::BufReader;
 
-use crate::diff::GitDiffer;
+use crate::diff::Differ;
 use crate::libgit::Libgit;
 use crate::note::{Note, NoteLedger};
 use crate::path::Paths;
@@ -34,14 +34,15 @@ where
     }
 
     fn do_read_note(&self, paths: &Paths) -> anyhow::Result<NoteLedger<T>> {
-        let id = Note::get_id(paths.relative())?;
+        let file_path = paths.relative();
+        let id = Note::get_id(&file_path)?;
         let note_path = paths.note(&id)?;
 
         let note = if note_path.exists() {
             let file = File::open(&note_path)?;
             serde_json::from_reader(BufReader::new(file))?
         } else {
-            let note = Note::new(&id, paths.relative());
+            let note = Note::new(&id, &file_path);
             self.write_note(paths, &note)?;
             note
         };

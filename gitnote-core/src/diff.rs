@@ -23,13 +23,13 @@ impl DiffModel {
     }
 }
 
-pub trait GitDiffer {
+pub trait Differ {
     fn diff(&self, old: &String, new: &String, diff_model: &mut DiffModel);
 }
 
-pub struct SimilarGitDiffer;
+pub struct SimilarDiffer;
 
-impl GitDiffer for SimilarGitDiffer {
+impl Differ for SimilarDiffer {
     fn diff(&self, old: &String, new: &String, diff_model: &mut DiffModel) {
         let mut encountered_but_undetermined_yet = false;
 
@@ -89,7 +89,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 1);
     }
@@ -113,7 +113,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, false);
     }
 
@@ -140,7 +140,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, false);
     }
 
@@ -165,7 +165,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 2);
     }
@@ -190,7 +190,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 1);
     }
@@ -213,7 +213,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, false);
     }
 
@@ -235,7 +235,7 @@ mod tests {
             snippet: "bar".to_string(),
             valid: true,
         };
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 1);
     }
@@ -262,7 +262,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 3);
     }
@@ -284,7 +284,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 0);
     }
@@ -308,7 +308,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 1);
     }
@@ -332,7 +332,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, false);
     }
 
@@ -356,7 +356,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 1);
     }
@@ -385,7 +385,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 2);
     }
@@ -401,7 +401,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 1);
     }
@@ -442,7 +442,7 @@ mod tests {
             valid: true,
         };
 
-        SimilarGitDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
+        SimilarDiffer.diff(&old.to_string(), &new.to_string(), &mut diff_model);
         assert_eq!(diff_model.valid, true);
         assert_eq!(diff_model.line, 6);
     }

@@ -44,13 +44,13 @@ where
             println!("{}", &note_str);
             return Ok(());
         }
-        let blob = ledger.git_blob()?;
-        self.pretty_print(&note, blob)?;
+        let git_blob = ledger.make_git_blob(false)?;
+        self.pretty_print(&note, git_blob.content)?;
         Ok(())
     }
 
-    fn pretty_print(&self, note: &Note, blob: GitBlob) -> anyhow::Result<()> {
-        blob.content.lines()
+    fn pretty_print(&self, note: &Note, content: String) -> anyhow::Result<()> {
+        content.lines()
             .enumerate()
             .for_each(|(line, row)| {
                 let message = note.find(line);

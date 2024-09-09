@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::Write;
+use std::io::{BufWriter, Write};
 use std::path::PathBuf;
 
 use anyhow::Context;
@@ -60,5 +60,11 @@ impl Writeable for &str {
 impl Writeable for Config {
     fn write(&self, file: &mut File) -> anyhow::Result<()> {
         Ok(serde_yaml_ng::to_writer(file, self)?)
+    }
+}
+
+impl Writeable for Vec<u8> {
+    fn write(&self, file: &mut File) -> anyhow::Result<()> {
+        Ok(file.write_all(self)?)
     }
 }
