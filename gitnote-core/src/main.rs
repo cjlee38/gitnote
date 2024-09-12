@@ -4,7 +4,7 @@ use gitnote::cli::argument::{CliCommand, CliConfigSubcommand, CliSubcommand};
 use gitnote::cli::CliCurator;
 use gitnote::diff::SimilarDiffer;
 use gitnote::handlers::NoteHandler;
-use gitnote::libgit::{ManualLibgit, ProcessLibgit};
+use gitnote::libgit::ManualLibgit;
 use gitnote::repository::NoteRepository;
 
 fn main() {

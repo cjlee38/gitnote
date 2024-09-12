@@ -18,7 +18,9 @@ impl PathResolver {
         current_path: P,
         input: &str,
     ) -> anyhow::Result<Paths>
-    where P: AsRef<Path> {
+    where
+        P: AsRef<Path>,
+    {
         let current_path = current_path.as_ref();
         let root = Self::root_by_recursive(current_path)?;
         Self::initialize(&root)?;
@@ -31,7 +33,10 @@ impl PathResolver {
         Ok(Paths::new(root.clone(), relative))
     }
 
-    fn root_by_recursive<P>(current: P) -> anyhow::Result<PathBuf> where P: AsRef<Path> {
+    fn root_by_recursive<P>(current: P) -> anyhow::Result<PathBuf>
+    where
+        P: AsRef<Path>,
+    {
         let mut current = current.as_ref();
         while !current.join(".git").exists() {
             if current.parent().is_none() {

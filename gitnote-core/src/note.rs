@@ -20,7 +20,6 @@ where
     note: RefCell<Note>,
 }
 
-// TODO : What if opaque line duplicated ?
 impl<'p, T> NoteLedger<'p, T>
 where
     T: Libgit,
@@ -48,7 +47,6 @@ where
         return Ref::map(note_ref, |note_ref| &note_ref.messages);
     }
 
-    // todo : review this method.... it is not clear
     /// Read note from file and filter out invalid messages
     fn opaque_messages(&self) -> Vec<Message> {
         let plain = self.plain_messages();
@@ -160,13 +158,8 @@ pub struct Message {
 
 impl Message {
     pub fn new(git_blob: &GitBlob, line: usize, message: String) -> anyhow::Result<Self> {
-        // let snippet = content.lines().nth(line - 1)
-        //     .ok_or(anyhow!("specified line `{}` extends limit for content",line))?;
-        let snippet = git_blob.snippet(line).ok_or(anyhow!(
-            "specified line `{}` extends limit for file {:?}",
-            line,
-            &git_blob.file_path
-        ))?;
+        let snippet = git_blob.snippet(line)
+            .ok_or(anyhow!("specified line `{}` extends limit for file {:?}",line,&git_blob.file_path))?;
 
         Ok(Message {
             uuid: Uuid::new_v4().to_string(),

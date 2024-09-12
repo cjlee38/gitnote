@@ -1,6 +1,5 @@
-use fs::File;
 use std::fs;
-use std::io::{BufWriter, Read, Write};
+use std::io::{Read, Write};
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::process::Command;

@@ -25,7 +25,7 @@ pub trait NoteArgs {
     fn sys_line(&self) -> usize;
     /// message user inputs
     ///
-    /// /// Can be used for : add, edit
+    /// Can be used for : add, edit
     fn message(&self) -> String;
 }
 
