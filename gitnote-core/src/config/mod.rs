@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 use crate::config::PersistenceType::Ephemeral;
 use crate::path::PathResolver;
 
+pub mod options;
+
 // declare config as static variable
 pub static CONFIG: Lazy<Config> = Lazy::new(|| {
     let current_dir = env::current_dir().unwrap();

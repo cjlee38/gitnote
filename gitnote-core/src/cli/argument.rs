@@ -195,7 +195,6 @@ pub enum CliConfigSubcommand {
     Set(ConfigSetArgs),
     Get(ConfigGetArgs),
     Show(ConfigShowArgs),
-    Unset(ConfigUnsetArgs),
 }
 
 #[derive(Debug, Args)]
@@ -214,9 +213,3 @@ pub struct ConfigGetArgs {
 
 #[derive(Debug, Args)]
 pub struct ConfigShowArgs {}
-
-#[derive(Debug, Args)]
-pub struct ConfigUnsetArgs {
-    #[arg(short, long, help = "Specifies the key to unset")]
-    pub key: String,
-}

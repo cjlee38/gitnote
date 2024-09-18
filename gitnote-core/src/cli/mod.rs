@@ -8,6 +8,7 @@ use crate::note::{Message, Note};
 use crate::stdio::stdout;
 
 pub mod argument;
+pub mod config;
 
 pub struct CliCurator<T>
 where
@@ -44,8 +45,8 @@ where
             println!("{}", &note_str);
             return Ok(());
         }
-        let git_blob = ledger.make_git_blob(false)?;
-        self.pretty_print(&note, git_blob.content)?;
+        let content = ledger.content()?;
+        self.pretty_print(&note, content)?;
         Ok(())
     }
 
@@ -87,24 +88,14 @@ where
     }
 
     pub fn edit_note(&self, args: EditArgs) -> anyhow::Result<()> {
-        let line = args.line - 1;
-
         self.note_handler.edit_note(&args)?;
-        println!(
-            "Successfully edited comment for `{}` in range `{}`",
-            &args.paths,
-            line + 1
-        );
+        println!("Successfully edited comment for `{}` in range `{}`", &args.paths, args.line);
         Ok(())
     }
 
     pub fn delete_note(&self, args: DeleteArgs) -> anyhow::Result<()> {
         self.note_handler.delete_note(&args)?;
-        stdout(&format!(
-            "Successfully deleted comment for `{}` in range `{}`",
-            &args.paths,
-            args.user_line()
-        ));
+        println!("Successfully deleted comment for `{}` in range `{}`", &args.paths, args.user_line());
         Ok(())
     }
 }

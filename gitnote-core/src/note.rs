@@ -53,7 +53,7 @@ where
         return plain.iter()
             .filter_map(|m| {
                 let old_blob = self.libgit.read_git_blob(&self.paths, &m.oid).ok()?;
-                let new_blob = self.make_git_blob(false).ok()?;
+                let new_blob = self.libgit.make_git_blob(&self.paths, false).ok()?;
 
                 let mut diff_model = DiffModel::of(m);
                 self.libgit.diff(&old_blob.content, &new_blob.content, &mut diff_model);
@@ -67,8 +67,8 @@ where
             .collect();
     }
 
-    pub fn make_git_blob(&self, persist: bool) -> anyhow::Result<GitBlob> {
-        self.libgit.make_git_blob(&self.paths, persist)
+    pub fn content(&self) -> anyhow::Result<String> {
+        Ok(self.libgit.make_git_blob(&self.paths, false)?.content)
     }
 
     pub fn opaque_exists(&self, line: usize) -> bool {
