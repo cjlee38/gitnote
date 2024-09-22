@@ -25,7 +25,7 @@ jobs:
           - name: win-amd64
             runner: windows-latest
             target: x86_64-pc-windows-msvc
-            libName: libgitnote.dll
+            libName: gitnote.dll
           - name: macos-amd64
             runner: macos-latest
             target: x86_64-apple-darwin
@@ -54,7 +54,7 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.target }}_${{ matrix.libName }}
+          name: ${{ matrix.target }}
           path: ./gitnote-core/target/${{ matrix.target }}/release/${{ matrix.libName }}
   collect:
     runs-on: ubuntu-latest
@@ -67,28 +67,10 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ./libs
+          path: ./gitnote-jetbrains/src/main/resources/core
 
-      - name: list libs
-        run: ls -lR ./libs
-
-      - name: Move artifacts to resources
-        run: |
-          directory="libs"
-          for file in "$directory"/*; do
-              filename=$(basename "$file")
-              IFS='_' read -r dirname _ <<< "$filename"
-          
-              echo "filename: $filename"
-              echo "dirname: $dirname"
-              echo "file: $file"
-              
-              mkdir -p "./gitnote-jetbrains/src/main/resources/core/$dirname/$filename"
-              cp "$file" "./gitnote-jetbrains/src/main/resources/core/$dirname/$filename"
-              echo "Copied $file to ./$dirname/$filename/"
-          done
       - name: list resources
         run: ls -lR ./gitnote-jetbrains/src/main/resources/core/
 
       - name: Build JAR
-        run: ./gradlew build
+        run: ./gitnote-jetbrains/gradlew build
