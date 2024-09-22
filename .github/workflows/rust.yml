@@ -41,7 +41,7 @@ jobs:
 
       - name: Build Binary
         working-directory: ./gitnote-core
-        run: cargo build --verbose --locked --release --target ${{ matrix.target }}
+        run: cargo build --lib --verbose --locked --release --target ${{ matrix.target }}
 
       - name: Run tests
         working-directory: ./gitnote-core
