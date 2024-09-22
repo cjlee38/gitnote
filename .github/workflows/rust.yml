@@ -45,4 +45,4 @@ jobs:
 
       - name: Run tests
         working-directory: ./gitnote-core
-        run: cargo test --verbose
+        run: cargo test --lib --verbose
