@@ -54,7 +54,7 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.target }}-${{ matrix.libName }}
+          name: ${{ matrix.target }}_${{ matrix.libName }}
           path: ./gitnote-core/target/${{ matrix.target }}/release/${{ matrix.libName }}
   collect:
     runs-on: ubuntu-latest
@@ -67,9 +67,27 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ./gitnote-jetbrains/src/main/resources/core/
+          path: ./libs
 
-      - name: list
+      - name: list libs
+        run: ls -lR ./libs
+
+      - name: Move artifacts to resources
+        run: |
+          directory="libs"
+          for file in "$directory"/*; do
+              filename=$(basename "$file")
+              IFS='_' read -r dirname _ <<< "$filename"
+          
+              echo "filename: $filename"
+              echo "dirname: $dirname"
+              echo "file: $file"
+              
+              mkdir -p "./gitnote-jetbrains/src/main/resources/core/$dirname/$filename"
+              cp "$file" "./gitnote-jetbrains/src/main/resources/core/$dirname/$filename"
+              echo "Copied $file to ./$dirname/$filename/"
+          done
+      - name: list resources
         run: ls -lR ./gitnote-jetbrains/src/main/resources/core/
 
       - name: Build JAR
