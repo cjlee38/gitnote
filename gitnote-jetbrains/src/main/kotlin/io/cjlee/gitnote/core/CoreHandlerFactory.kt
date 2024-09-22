@@ -8,6 +8,7 @@ object CoreHandlerFactory {
     }
 
     private fun createCoreHandler(projectPath: String): CoreHandler {
-        return CoreHandler(ProcessCoreConnector(projectPath)).also { coreHandlers[projectPath] = it }
+        return CoreHandler(JniCoreConnector(projectPath)).also { coreHandlers[projectPath] = it }
+//        return CoreHandler(ProcessCoreConnector(projectPath)).also { coreHandlers[projectPath] = it }
     }
 }

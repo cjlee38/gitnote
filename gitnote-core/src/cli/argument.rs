@@ -1,10 +1,8 @@
 use std::env;
-use std::path::Path;
 use std::str::FromStr;
 
 use clap::{Args, Parser, Subcommand};
 
-use crate::config::Config;
 use crate::handlers::NoteArgs;
 use crate::path::{PathResolver, Paths};
 
@@ -24,7 +22,7 @@ pub enum CliSubcommand {
     Config(CliConfigSubcommand),
 }
 
-/// for clap parser
+/// for clap parser.
 impl FromStr for Paths {
     type Err = anyhow::Error;
 
@@ -47,7 +45,7 @@ pub struct AddArgs {
     #[arg(
         short,
         long,
-        help = "Specifies the line number to add a note to"
+        help = "Specifies the line number to add a note to. The line number starts from 1"
     )]
     line: usize,
     #[arg(
@@ -125,7 +123,7 @@ pub struct EditArgs {
     #[arg(
         short,
         long,
-        help = "Specifies the line number to edit a note to"
+        help = "Specifies the line number to edit a note to. The line number starts from 1"
     )]
     pub line: usize,
     #[arg(
@@ -167,7 +165,7 @@ pub struct DeleteArgs {
     #[arg(
         short,
         long,
-        help = "Specifies the line number to delete"
+        help = "Specifies the line number to delete. The line number starts from 1"
     )]
     pub line: usize,
 }

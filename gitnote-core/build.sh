@@ -10,7 +10,7 @@ targets=(
 for target in "${targets[@]}"
 do
   echo "Building for target: $target"
-  cargo build --target "$target" --release
+  cargo build --lib --target "$target" --release
   if [ $? -ne 0 ]; then
     echo "Build failed for target: $target"
     exit 1
