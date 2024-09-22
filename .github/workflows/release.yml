@@ -59,7 +59,7 @@ jobs:
           path: ./gitnote-core/target/${{ matrix.target }}/release/${{ matrix.libName }}
   buildJar:
     runs-on: ubuntu-latest
-    needs: build
+    needs: buildCargo
 
     steps:
       - name: Checkout
