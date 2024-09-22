@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "io.cjlee"
-version = "0.2.6"
+version = "0.2.7"
 
 repositories {
     mavenCentral()
@@ -29,11 +29,18 @@ intellij {
     plugins.set(listOf(/* Plugin Dependencies */))
 }
 
-// phase
-val PHASE_DEVELOP = 0
-val PHASE_ALPHA = 1
-val PHASE_RELEASE = 2
-val phase = (System.getProperty("gitnote.phase") ?: "0").toInt()
+
+/**
+ * Determine whether to use `localhost:3000` GUI for development. false by default means using the built-in GUI
+ */
+val useLocalGui = System.getProperty("gitnote.useLocalGui")?.toBoolean() ?: false
+
+/**
+ * Determine whether to build the core module locally.
+ *
+ * Usually set to false when you release the plugin using github-actions.
+ */
+val buildCore = System.getProperty("gitnote.buildCore")?.toBoolean() ?: true
 
 tasks {
     // Set the JVM compatibility versions
@@ -52,13 +59,23 @@ tasks {
 
     runIde {
         autoReloadPlugins = true
-        systemProperty("gitnote.phase", phase)
     }
 
     buildPlugin {
-        if (phase == PHASE_ALPHA) {
-            dependsOn("buildCore")
+        if (!useLocalGui) {
             dependsOn("buildGui")
+        }
+        if (buildCore) {
+            dependsOn("buildCore")
+        }
+    }
+
+    processResources {
+        if (!useLocalGui) {
+            dependsOn(named("copyGui"))
+        }
+        if (buildCore) {
+            dependsOn(named("copyCore"))
         }
     }
 
@@ -95,12 +112,5 @@ tasks {
         delete("src/main/resources/webview/")
         from("../gitnote-gui/build")
         into("src/main/resources/webview/.")
-    }
-
-    processResources {
-        if (phase == PHASE_ALPHA) {
-            dependsOn(named("copyCore"))
-            dependsOn(named("copyGui"))
-        }
     }
 }
