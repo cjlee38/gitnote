@@ -73,4 +73,5 @@ jobs:
         run: ls -lR ./gitnote-jetbrains/src/main/resources/core/
 
       - name: Build JAR
-        run: ./gitnote-jetbrains/gradlew build
+        working-directory: ./gitnote-jetbrains
+        run: ./gradlew buildPlugin

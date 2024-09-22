@@ -14,7 +14,7 @@ class JniCoreConnector(
         val libFile: File by lazy {
             val platform = ConnectorLoader.platform ?: throw IllegalStateException("platform is not supported")
             val libName = when (platform) {
-                Platform.WINDOWS -> "libgitnote.dll"
+                Platform.WINDOWS -> "gitnote.dll"
                 Platform.LINUX -> "libgitnote.so"
                 Platform.INTEL_MAC -> "libgitnote.dylib"
                 Platform.SILICON_MAC -> "libgitnote.dylib"
