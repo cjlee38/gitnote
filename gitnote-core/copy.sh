@@ -2,9 +2,9 @@
 # Used for local builds. This script is not used in the CI/CD pipeline.
 
 targets=(
-  "aarch64-apple-darwin git-note"
-  "x86_64-pc-windows-gnu git-note.exe"
-  "x86_64-unknown-linux-gnu git-note"
+  "aarch64-apple-darwin libgitnote.a"
+#  "x86_64-pc-windows-gnu git-note.exe"
+#  "x86_64-unknown-linux-gnu git-note"
 )
 
 for target_info in "${targets[@]}"

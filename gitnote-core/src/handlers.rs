@@ -29,7 +29,7 @@ pub trait NoteArgs {
     fn message(&self) -> String;
 }
 
-/// A service to handle note operations.
+/// A core service to handle note operations.
 pub struct NoteHandler<T>
 where
     T: Libgit,
