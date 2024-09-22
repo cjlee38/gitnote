@@ -29,7 +29,14 @@ intellij {
     plugins.set(listOf(/* Plugin Dependencies */))
 }
 
-val development = false
+// phase
+// 0 : develop
+// 1 : alpha
+// 2 : release
+val PHASE_DEVELOP = 0
+val PHASE_ALPHA = 1
+val PHASE_RELEASE = 2
+val phase = (System.getProperty("gitnote.phase") ?: "0").toInt()
 
 tasks {
     // Set the JVM compatibility versions
@@ -48,11 +55,11 @@ tasks {
 
     runIde {
         autoReloadPlugins = true
-        systemProperty("gitnote.developmentPhase", development)
+        systemProperty("gitnote.phase", phase)
     }
 
     buildPlugin {
-        if (!development) {
+        if (phase == PHASE_ALPHA) {
             dependsOn("buildCore")
             dependsOn("buildGui")
         }
@@ -94,7 +101,7 @@ tasks {
     }
 
     processResources {
-        if (!development) {
+        if (phase == PHASE_ALPHA) {
             dependsOn(named("copyCore"))
             dependsOn(named("copyGui"))
         }

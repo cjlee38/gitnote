@@ -22,13 +22,13 @@ class GitNoteViewerWindow(
     private val project: Project,
     private val protocolHandlers: Map<String, ProtocolHandler>
 ) {
-    private val isDevelopment = System.getProperty("gitnote.developmentPhase", "false").toBoolean()
+    private val phase = System.getProperty("gitnote.phase", "1").toInt()
 
     val webView: JBCefBrowser = JBCefBrowser.createBuilder()
         .setOffScreenRendering(false)
         .build()
         .apply {
-            if (isDevelopment) this.loadURL("http://localhost:3000/index.html")
+            if (phase == 0) this.loadURL("http://localhost:3000/index.html")
             else this.loadURL("http://gitnote/index.html")
 
             registerAppSchemeHandler()
@@ -49,7 +49,7 @@ class GitNoteViewerWindow(
         frontHandler.addHandler("theme", ThemeProtocolHandler())
         jsQuery.addHandler(frontHandler)
 
-        if (isDevelopment) {
+        if (phase == 0) {
             browser.jbCefClient.addDisplayHandler(JCefDebugDisplayHandler(), browser.cefBrowser) // for debugging
         }
     }

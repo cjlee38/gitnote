@@ -44,7 +44,7 @@ class ProcessCoreConnector(
     }
 
     companion object {
-        private val isDevelopment = System.getProperty("gitnote.developmentPhase", "false").toBoolean()
+        private val phase = System.getProperty("gitnote.phase", "1").toInt()
         private val systemCommand = arrayOf("git", "note")
         val COMMAND: Array<String>
 
@@ -54,7 +54,7 @@ class ProcessCoreConnector(
 
         private fun determineCommand(): Array<String> {
             val platform = ConnectorLoader.platform
-            if (isDevelopment || platform == null) {
+            if (phase == 0 || platform == null) {
                 return systemCommand
             }
             val filename = when (platform) {

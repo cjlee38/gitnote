@@ -74,4 +74,4 @@ jobs:
 
       - name: Build JAR
         working-directory: ./gitnote-jetbrains
-        run: ./gradlew buildPlugin
+        run: ./gradlew buildPlugin -Dgitnote.phase=2
