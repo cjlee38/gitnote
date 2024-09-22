@@ -36,8 +36,6 @@ where
 
     pub fn read_note(&self, args: ReadArgs) -> anyhow::Result<()> {
         let ledger = self.note_handler.read_note(&args)?;
-        // TODO : This is a temporary solution to provide a formatted output
-        //      for the note. This should be replaced when JNI is implemented.
         let note = ledger.opaque_note();
         if args.formatted {
             let note_str = serde_json::to_string_pretty(&note)?;
