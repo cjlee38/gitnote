@@ -76,6 +76,7 @@ jobs:
 
       - name: Get Project Version
         id: get_version
+        working-directory: ./gitnote-jetbrains
         run: echo "GITNOTE_VERSION=$(./gradlew properties -q | awk '/^version:/ {print "v"$2}')" >> $GITHUB_ENV
 
       - name: Upload
@@ -88,11 +89,12 @@ jobs:
     needs: [ buildCargo, buildJar ]
 #    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Get Project Version
         id: get_version
+        working-directory: ./gitnote-jetbrains
         run: echo "GITNOTE_VERSION=$(./gradlew properties -q | awk '/^version:/ {print "v"$2}')" >> $GITHUB_ENV
 
       - name: Download Artifacts
