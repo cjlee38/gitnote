@@ -2,11 +2,11 @@ package io.cjlee.gitnote.core
 
 import org.apache.commons.lang3.SystemUtils
 
-enum class Platform(val binary: String) {
-    WINDOWS("x86_64_pc-windows-gnu/git-note.exe"),
-    INTEL_MAC("x86_64-apple-darwin/git-note"),
-    SILICON_MAC("aarch64-apple-darwin/git-note"),
-    LINUX("x86_64_unknown-linux-gnu/git-note");
+enum class Platform(val arch: String) {
+    WINDOWS("x86_64_pc-windows-gnu"),
+    INTEL_MAC("x86_64-apple-darwin"),
+    SILICON_MAC("aarch64-apple-darwin"),
+    LINUX("x86_64_unknown-linux-gnu");
 
     companion object {
         fun determine(): Platform? {

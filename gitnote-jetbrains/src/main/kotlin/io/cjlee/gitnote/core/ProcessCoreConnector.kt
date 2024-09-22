@@ -1,10 +1,8 @@
 package io.cjlee.gitnote.core
 
-import org.apache.commons.io.FileUtils
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
-import java.nio.file.Files
 
 class ProcessCoreConnector(
     private val projectPath: String
@@ -45,38 +43,30 @@ class ProcessCoreConnector(
         }
     }
 
-    companion object ProcessLoader {
-        private const val RESOURCE_LOCATION = "core/"
+    companion object {
+        private val isDevelopment = System.getProperty("gitnote.developmentPhase", "false").toBoolean()
         private val systemCommand = arrayOf("git", "note")
         val COMMAND: Array<String>
 
-        private val isDevelopment = System.getProperty("gitnote.developmentPhase", "false").toBoolean()
-
         init {
-            val platform = Platform.determine()
-            COMMAND = command(platform)
+            COMMAND = determineCommand()
         }
 
-        private fun command(platform: Platform?): Array<String> {
+        private fun determineCommand(): Array<String> {
+            val platform = ConnectorLoader.platform
             if (isDevelopment || platform == null) {
                 return systemCommand
             }
-            val file = loadFile(platform)
+            val filename = when (platform) {
+                Platform.WINDOWS -> "git-note.exe"
+                else -> "git-note"
+            }
+
+            val file = ConnectorLoader.loadFile(platform.arch + "/" + filename)
             if (!file.setExecutable(true)) {
                 return systemCommand
             }
             return arrayOf(file.path)
-        }
-
-        private fun loadFile(platform: Platform): File {
-            val classLoader = this::class.java.classLoader
-            return Files.createTempFile("git-note", ".tmp")
-                .toFile()
-                .apply {
-                    this.deleteOnExit()
-                    val resource = classLoader.getResource(RESOURCE_LOCATION + platform.binary)
-                    FileUtils.copyURLToFile(resource, this)
-                }
         }
     }
 }

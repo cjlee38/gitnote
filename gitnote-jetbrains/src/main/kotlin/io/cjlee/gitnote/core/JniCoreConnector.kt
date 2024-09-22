@@ -3,14 +3,28 @@ package io.cjlee.gitnote.core
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import java.io.File
 
 class JniCoreConnector(
     private val projectPath: String
 ) : CoreConnector {
     private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
 
+    companion object {
+        val libFile: File by lazy {
+            val platform = ConnectorLoader.platform ?: throw IllegalStateException("platform is not supported")
+            val libName = when (platform) {
+                Platform.WINDOWS -> "libgitnote.dll"
+                Platform.LINUX -> "libgitnote.so"
+                Platform.INTEL_MAC -> "libgitnote.dylib"
+                Platform.SILICON_MAC -> "libgitnote.dylib"
+            }
+            ConnectorLoader.loadFile(platform.arch + "/" + libName)
+        }
+    }
+
     init {
-        System.load("/Users/cjlee/Desktop/workspace/gitnote/gitnote-jetbrains/src/main/resources/core/aarch64-apple-darwin/libgitnote.dylib")
+        System.load(libFile.path)
     }
 
     override fun add(filePath: String, line: Int, message: String): CoreConnector.Response {
