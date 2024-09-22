@@ -5,7 +5,6 @@ use crate::cli::argument::{AddArgs, DeleteArgs, EditArgs, ReadArgs};
 use crate::handlers::{NoteArgs, NoteHandler};
 use crate::libgit::Libgit;
 use crate::note::{Message, Note};
-use crate::stdio::stdout;
 
 pub mod argument;
 pub mod config;

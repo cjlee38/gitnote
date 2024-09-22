@@ -1,6 +1,4 @@
 use crate::cli::argument::{ConfigGetArgs, ConfigSetArgs};
-use crate::config::{Config, CONFIG};
-use crate::path::Paths;
 
 pub struct CliConfig;
 

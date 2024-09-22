@@ -1,8 +1,10 @@
 use std::path::Path;
+
 use jni::JNIEnv;
 use jni::objects::{JClass, JString};
 use jni::sys::jint;
 use serde::Serialize;
+
 use crate::diff::SimilarDiffer;
 use crate::handlers::{NoteArgs, NoteHandler};
 use crate::libgit::{Libgit, ManualLibgit};
@@ -70,7 +72,7 @@ pub extern "system" fn Java_io_cjlee_gitnote_core_JniCoreConnector_add0<'local>(
     exec_path: JString<'local>,
     file_path: JString<'local>,
     line: jint,
-    message: JString<'local>
+    message: JString<'local>,
 ) -> JString<'local> {
     let handler = note_handler();
     let paths = paths(&mut env, &exec_path, &file_path);
@@ -170,7 +172,8 @@ fn peel_string(env: &mut JNIEnv, jstring: &JString) -> String {
 }
 
 fn new_json_string<'a, T>(env: JNIEnv<'a>, o: &T) -> JString<'a>
-    where T: ?Sized + Serialize
+where
+    T: ?Sized + Serialize,
 {
     let str = serde_json::to_string(o).expect("Couldn't serialize response");
     env.new_string(str).expect("Couldn't create java string").into()
