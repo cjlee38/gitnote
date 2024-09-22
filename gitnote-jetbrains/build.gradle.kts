@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "io.cjlee"
-version = "0.2.0"
+version = "0.2.5"
 
 repositories {
     mavenCentral()
@@ -30,9 +30,6 @@ intellij {
 }
 
 // phase
-// 0 : develop
-// 1 : alpha
-// 2 : release
 val PHASE_DEVELOP = 0
 val PHASE_ALPHA = 1
 val PHASE_RELEASE = 2

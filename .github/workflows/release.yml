@@ -104,9 +104,6 @@ jobs:
         with:
           name: gitnote-jetbrains-${{ env.GITNOTE_VERSION }}.zip
 
-      - name: list resources
-        run: ls -l .
-
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
