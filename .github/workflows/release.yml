@@ -72,7 +72,7 @@ jobs:
 
       - name: Build JAR
         working-directory: ./gitnote-jetbrains
-        run: ./gradlew buildPlugin -Dgitnote.useLocalGui=false -Dgitnote.buildCore=false --stacktrace --debug
+        run: ./gradlew buildPlugin -Dgitnote.useLocalGui=false -Dgitnote.buildCore=false
 
       - name: Get Project Version
         id: get_version

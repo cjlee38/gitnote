@@ -1,4 +1,3 @@
-import com.github.gradle.node.npm.task.NpmTask
 import com.github.gradle.node.npm.task.NpxTask
 
 plugins {
@@ -9,7 +8,7 @@ plugins {
 }
 
 group = "io.cjlee"
-version = "0.2.12"
+version = "0.2.13"
 
 repositories {
     mavenCentral()
