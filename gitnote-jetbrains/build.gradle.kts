@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "io.cjlee"
-version = "0.2.10"
+version = "0.2.11"
 
 repositories {
     mavenCentral()
@@ -102,14 +102,13 @@ tasks {
     }
 
     npmInstall {
-
         workingDir = file("../gitnote-gui")
     }
 
     register<NpmTask>("buildGui") {
-        dependsOn("npmInstall") // Ensure npm is installed
-        workingDir = file("../gitnote-gui") // Set the working directory to your React project
-        args.set(listOf("run", "build")) // Command to build the React project
+        dependsOn("npmInstall")
+        workingDir = file("../gitnote-gui")
+        args.set(listOf("run", "build"))
     }
 
     register<Copy>("copyGui") {
