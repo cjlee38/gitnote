@@ -1,3 +1,4 @@
+import com.github.gradle.node.npm.task.NpmTask
 import com.github.gradle.node.npm.task.NpxTask
 
 plugins {
@@ -8,7 +9,7 @@ plugins {
 }
 
 group = "io.cjlee"
-version = "0.2.9"
+version = "0.2.10"
 
 repositories {
     mavenCentral()
@@ -100,16 +101,14 @@ tasks {
         commandLine("sh", "copy.sh")
     }
 
-    register<NpxTask>("npmInstall") {
+    npmInstall {
+
         workingDir = file("../gitnote-gui")
-        command.set("npm")
-        args.set(listOf("install"))
     }
 
-    register<NpxTask>("buildGui") {
+    register<NpmTask>("buildGui") {
         dependsOn("npmInstall") // Ensure npm is installed
         workingDir = file("../gitnote-gui") // Set the working directory to your React project
-        command.set("npm")
         args.set(listOf("run", "build")) // Command to build the React project
     }
 
@@ -124,6 +123,6 @@ tasks {
 node {
     version = "22.2.0"
     npmVersion = "10.7.0"
-    download = true
-    workDir = file("../gitnote-gui")
+    download = !useLocalGui
+    nodeProjectDir = file("../gitnote-gui")
 }
