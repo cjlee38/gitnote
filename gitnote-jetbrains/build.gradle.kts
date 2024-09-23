@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "io.cjlee"
-version = "0.2.8"
+version = "0.2.9"
 
 repositories {
     mavenCentral()
@@ -98,6 +98,12 @@ tasks {
         dependsOn(named("buildCore"))
         workingDir = file("../gitnote-core")
         commandLine("sh", "copy.sh")
+    }
+
+    register<NpxTask>("npmInstall") {
+        workingDir = file("../gitnote-gui")
+        command.set("npm")
+        args.set(listOf("install"))
     }
 
     register<NpxTask>("buildGui") {
