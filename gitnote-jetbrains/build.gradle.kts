@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "io.cjlee"
-version = "0.2.7"
+version = "0.2.8"
 
 repositories {
     mavenCentral()
@@ -113,4 +113,11 @@ tasks {
         from("../gitnote-gui/build")
         into("src/main/resources/webview/.")
     }
+}
+
+node {
+    version = "22.2.0"
+    npmVersion = "10.7.0"
+    download = true
+    workDir = file("../gitnote-gui")
 }
