@@ -4,7 +4,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.markup.GutterDraggableObject
 import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.util.IconLoader
@@ -19,15 +18,13 @@ import javax.swing.Icon
 import javax.swing.ImageIcon
 
 class GitNoteGutterIconRenderer(
+    val line: Int,
     val lineMessages: List<Message>,
     private val protocolHandlers: Map<String, ProtocolHandler>,
     var visible: Boolean,
-    val highlighter: RangeHighlighterEx,
     val document: Document
-) : GutterIconRenderer() {
+) : GutterIconRenderer(), Disposable {
     val hasMessage: Boolean = lineMessages.isNotEmpty()
-    val line: Int
-        get() = document.getLineNumber(highlighter.startOffset)
 
     override fun getIcon(): Icon {
         return when {
@@ -60,10 +57,19 @@ class GitNoteGutterIconRenderer(
 
     override fun hashCode(): Int = icon.hashCode()
 
+    override fun dispose() {
+        // TODO : dispose
+    }
+
     override fun getDraggableObject(): GutterDraggableObject? {
         // TODO : drag & drop
         return super.getDraggableObject()
     }
+
+    override fun toString(): String {
+        return "GitNoteGutterIconRenderer(line=$line, lineMessages=$lineMessages, protocolHandlers=$protocolHandlers, visible=$visible, document=$document, hasMessage=$hasMessage)"
+    }
+
 
     companion object IconRenderer {
         private val ICON = IconLoader.getIcon("/icons/icon.png", GitNoteGutterIconRenderer::class.java)

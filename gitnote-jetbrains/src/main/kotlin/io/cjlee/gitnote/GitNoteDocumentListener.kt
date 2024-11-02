@@ -4,13 +4,19 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.convertValue
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.event.BulkAwareDocumentListener
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
+import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.ui.update.MergingUpdateQueue
 import com.intellij.util.ui.update.Update
@@ -21,6 +27,7 @@ import io.cjlee.gitnote.core.Note
 import io.cjlee.gitnote.jcef.protocol.ProtocolHandler
 import io.cjlee.gitnote.jcef.protocol.ProtocolMessaage
 import javax.swing.SwingUtilities
+
 
 /**
  * This class is a main component which is responsible to interact with the editor users use.
@@ -35,10 +42,11 @@ class GitNoteDocumentListener(
     private lateinit var note: Note
     private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
     private val reloadOnEventThread = { SwingUtilities.invokeLater { this.reload() } }
+
     // queue for saving document not too frequently
     private val queue = MergingUpdateQueue("GitNoteQueue", 100, true, null)
 
-    private val lineHighlighters = mutableSetOf<RangeHighlighterEx>()
+    private val lineHighlighters = mutableSetOf<RangeHighlighter>()
 
     init {
         reloadOnEventThread()
@@ -47,99 +55,75 @@ class GitNoteDocumentListener(
             editor.addEditorMouseListener(iconVisibility)
             editor.addEditorMouseMotionListener(iconVisibility)
         }
+
+        val disposable = Disposer.newDisposable()
+        editor.markupModel.addMarkupModelListener(disposable, object : MarkupModelListener {
+            override fun beforeRemoved(highlighter: RangeHighlighterEx) {
+                val iconRenderer = highlighter.gutterIconRenderer as? GitNoteGutterIconRenderer ?: return
+                Disposer.dispose(iconRenderer)
+                lineHighlighters.remove(highlighter)
+            }
+        })
+        EditorUtil.disposeWithEditor(editor, disposable)
+
+        editor.foldingModel.addListener(object : FoldingListener {
+            override fun onFoldRegionStateChange(region: FoldRegion) {
+                reloadOnEventThread()
+            }
+        }, disposable)
     }
 
     override fun documentChanged(event: DocumentEvent) {
         this.queue(LOW_PRIORITY) {
             FileDocumentManager.getInstance().saveDocument(event.document)
-            addEmptyMessageIcons(event.document)
+            addMessageIcons(event.document)
         }
     }
 
     private fun reload() {
         this.queue(HIGH_PRIORITY) {
             note = handler.read(file.path, force = true) ?: throw IllegalStateException("no note")
-            addNoteMessageIcons(editor.document)
-            addEmptyMessageIcons(editor.document)
+            addMessageIcons(editor.document)
         }
     }
 
-    private fun addNoteMessageIcons(document: Document) {
-        lineHighlighters.clear()
+    private fun addMessageIcons(document: Document) {
         editor.markupModel.removeAllHighlighters()
-
-        val noteLineMessages = note.messages.groupBy { it.line }
-        (0 until document.lineCount).forEach { line ->
-            val height = heightOfLine(line)
-
-            val lineMessages = noteLineMessages[line]
-            val protocolHandlers = createProtocolHandlers(line)
-            editor.markupModel.addRangeHighlighterAndChangeAttributes(
-                null,
-                height.first,
-                height.second,
-                HighlighterLayer.LAST,
-                HighlighterTargetArea.EXACT_RANGE,
-                false
-            ) { highlighter ->
-                val gitNoteGutterIconRenderer = GitNoteGutterIconRenderer(
-                    lineMessages = lineMessages ?: emptyList(),
-                    protocolHandlers = protocolHandlers,
-                    visible = lineMessages != null,
-                    highlighter = highlighter,
-                    document = document
-                )
-                highlighter.gutterIconRenderer = gitNoteGutterIconRenderer
-            }.also { highlighter -> lineHighlighters.add(highlighter) }
-        }
-    }
-
-    private fun addEmptyMessageIcons(document: Document) {
-//        TODO : if highlighters keeps growing, mutable renderer would be answer, using below
-//        editor.markupModel.allHighlighters
-//            .map { it.gutterIconRenderer }
-//            .filterIsInstance<GitNoteGutterIconRenderer>()
-
-        lineHighlighters.map { it.gitNoteGutterIconRenderer }
-            .filter { !it.hasMessage }
-            .forEach {
-                lineHighlighters.remove(it.highlighter)
-                editor.markupModel.removeHighlighter(it.highlighter)
-            }
+        val messagesByLine = note.messages.groupBy { it.line }
 
         (0 until document.lineCount).forEach { line ->
-            val height = heightOfLine(line)
-
-            if (lineHighlighters.any { it.gitNoteGutterIconRenderer.line == line }) {
-                return@forEach
+            val isLineVisible = editor.foldingModel.allFoldRegions.none { region ->
+                region.startOffset <= document.getLineStartOffset(line) &&
+                        region.endOffset > document.getLineStartOffset(line) &&
+                        !region.isExpanded &&
+                        document.getLineNumber(region.startOffset) != line
             }
 
-            val protocolHandlers = createProtocolHandlers(line)
-            editor.markupModel.addRangeHighlighterAndChangeAttributes(
-                null,
-                height.first,
-                height.second,
-                HighlighterLayer.LAST,
-                HighlighterTargetArea.EXACT_RANGE,
-                false
-            ) { highlighter ->
-                highlighter.gutterIconRenderer = GitNoteGutterIconRenderer(
-                    lineMessages = emptyList(),
-                    protocolHandlers = protocolHandlers,
-                    visible = false,
-                    highlighter = highlighter,
-                    document = document
-                )
-            }.also { highlighter -> lineHighlighters.add(highlighter) }
+            if (isLineVisible) {
+                val protocolHandlers = createProtocolHandlers(line)
+                val lineMessages = messagesByLine[line]
+
+                val start = editor.document.getLineStartOffset(line)
+                val end = editor.document.getLineEndOffset(line)
+                editor.markupModel.addRangeHighlighterAndChangeAttributes(
+                    null,
+                    start,
+                    end,
+                    HighlighterLayer.LAST,
+                    HighlighterTargetArea.EXACT_RANGE,
+                    false
+                ) { highlighter ->
+                    highlighter.gutterIconRenderer = GitNoteGutterIconRenderer(
+                        lineMessages = lineMessages ?: emptyList(),
+                        protocolHandlers = protocolHandlers,
+                        visible = lineMessages != null,
+                        line = line,
+                        document = document
+                    )
+                }.also { lineHighlighters.add(it) }
+            }
         }
     }
-
-    private fun heightOfLine(line: Int) : Pair<Int, Int> {
-        return (editor.document.getLineStartOffset(line) to editor.document.getLineEndOffset(line))
-    }
-
-    private val RangeHighlighterEx.gitNoteGutterIconRenderer: GitNoteGutterIconRenderer
-        get() = this.gutterIconRenderer as GitNoteGutterIconRenderer
 
     private fun createProtocolHandlers(line: Int): Map<String, ProtocolHandler> {
         return mapOf(
