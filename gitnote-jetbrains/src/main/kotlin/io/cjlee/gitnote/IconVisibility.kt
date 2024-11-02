@@ -5,11 +5,11 @@ import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.openapi.editor.event.EditorMouseListener
 import com.intellij.openapi.editor.event.EditorMouseMotionListener
-import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.editor.markup.RangeHighlighter
 import javax.swing.JComponent
 
 class IconVisibility(
-    private val highlighters: Set<RangeHighlighterEx>
+    private val highlighters: Set<RangeHighlighter>
 ) : EditorMouseListener, EditorMouseMotionListener {
 
     override fun mouseMoved(e: EditorMouseEvent) = doUpdate(e.editor, e.logicalPosition.line)
